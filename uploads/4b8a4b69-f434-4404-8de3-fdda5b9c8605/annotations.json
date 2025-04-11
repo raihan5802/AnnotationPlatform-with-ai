@@ -1,0 +1,52 @@
+{
+  "taskName": "captask1",
+  "labelClasses": [
+    {
+      "name": "c",
+      "color": "#e6194B"
+    }
+  ],
+  "annotations": {
+    "http://localhost:4000/uploads/4b8a4b69-f434-4404-8de3-fdda5b9c8605/roots/download.jpeg": [
+      {
+        "id": "T-01",
+        "type": "caption",
+        "text": "this is a garbage",
+        "x": 105.81338028169014,
+        "y": 94.5,
+        "fontSize": 12,
+        "color": "#000000"
+      },
+      {
+        "id": "T-02",
+        "type": "caption",
+        "text": "this image contains waste",
+        "x": 105.81338028169014,
+        "y": 94.5,
+        "fontSize": 12,
+        "color": "#000000"
+      }
+    ],
+    "http://localhost:4000/uploads/4b8a4b69-f434-4404-8de3-fdda5b9c8605/roots/images.jpeg": [
+      {
+        "id": "T-01",
+        "type": "caption",
+        "text": "this is another dustbin",
+        "x": 102.45422535211269,
+        "y": 91.5,
+        "fontSize": 12,
+        "color": "#000000"
+      },
+      {
+        "id": "T-02",
+        "type": "caption",
+        "text": "it also contains waste",
+        "x": 102.45422535211269,
+        "y": 91.5,
+        "fontSize": 12,
+        "color": "#000000"
+      }
+    ]
+  },
+  "lastUpdated": "2025-03-30T18:23:30.665Z"
+}

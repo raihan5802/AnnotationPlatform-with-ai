@@ -1,0 +1,415 @@
+/* ProjectInfo.css - Modern styling for annotation platform */
+
+.project-info-page {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: var(--text);
+    background-color: #f8fafc;
+    min-height: 100vh;
+  }
+  
+  .project-info-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 5%;
+  }
+  
+  /* Header Section */
+  .project-info-container h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--dark);
+    position: relative;
+    display: inline-block;
+  }
+  
+  .project-info-container h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    background: var(--gradient);
+    border-radius: 2px;
+  }
+  
+  /* Info Card */
+  .project-info-card {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .project-info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--secondary);
+    border-radius: 50%;
+    margin-right: 1rem;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-right: 0.5rem;
+  }
+  
+  .info-value {
+    font-weight: 500;
+    color: var(--text);
+  }
+  
+  /* Labels Section */
+  .labels-section {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .labels-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .labels-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  .labels-header h3 svg {
+    margin-right: 0.75rem;
+    color: var(--secondary);
+  }
+  
+  .add-label-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1.2rem;
+    background: var(--gradient);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .add-label-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .add-label-btn svg {
+    margin-right: 0.5rem;
+  }
+  
+  .labels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  
+  .label-chip {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: transform 0.2s ease;
+  }
+  
+  .label-chip:hover {
+    transform: translateY(-2px);
+  }
+  
+  .label-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+  }
+  
+  /* Folder Structure Section */
+  .folder-structure-section {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .folder-structure-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .folder-structure-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  .folder-structure-header h3 svg {
+    margin-right: 0.75rem;
+    color: var(--secondary);
+  }
+  
+  /* Custom FolderTree styling */
+  .folder-tree {
+    padding-left: 0;
+  }
+  
+  .folder-tree ul {
+    padding-left: 1.5rem;
+  }
+  
+  .folder-tree li {
+    list-style-type: none;
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+  
+  .folder-node, .file-node {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s ease;
+  }
+  
+  .folder-node:hover, .file-node:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+  }
+  
+  .folder-icon, .file-icon {
+    margin-right: 0.75rem;
+    color: var(--secondary);
+  }
+  
+  .folder-name {
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .file-name {
+    font-weight: 400;
+  }
+  
+  .folder-toggle {
+    cursor: pointer;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+  }
+  
+  .folder-toggle.open {
+    transform: rotate(90deg);
+  }
+  
+  /* Actions Section */
+  .actions-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .btn {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .upload-more-btn {
+    background-color: var(--accent-1);
+    color: white;
+  }
+  
+  .create-task-btn {
+    background-color: var(--accent-2);
+    color: white;
+  }
+  
+  .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .btn svg {
+    margin-right: 0.5rem;
+  }
+  
+  /* Modal Styling */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-box {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    animation: modalFade 0.3s ease;
+  }
+  
+  @keyframes modalFade {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .modal-box h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--dark);
+  }
+  
+  .modal-box input[type="text"] {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .modal-box input[type="text"]:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  }
+  
+  .color-picker-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .color-picker-container label {
+    margin-right: 1rem;
+    font-weight: 500;
+  }
+  
+  .color-input {
+    -webkit-appearance: none;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  
+  .color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  
+  .color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: var(--radius-sm);
+  }
+  
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  .modal-buttons .btn {
+    padding: 0.6rem 1.5rem;
+  }
+  
+  .cancel-btn {
+    background-color: transparent;
+    color: var(--text);
+    border: 1px solid #e2e8f0;
+  }
+  
+  /* Responsive Styles */
+  @media (max-width: 768px) {
+    .project-info-container h2 {
+      font-size: 2rem;
+    }
+    
+    .info-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .info-icon {
+      margin-bottom: 0.5rem;
+    }
+    
+    .labels-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .actions-section {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .project-info-container {
+      padding: 1.5rem 4%;
+    }
+    
+    .project-info-container h2 {
+      font-size: 1.75rem;
+    }
+    
+    .modal-box {
+      padding: 1.5rem;
+      width: 90%;
+    }
+  }

@@ -1,0 +1,44 @@
+{
+  "taskName": "t1",
+  "labelClasses": [
+    {
+      "name": "l1",
+      "color": "#e6194B"
+    },
+    {
+      "name": "l22",
+      "color": "#f032e6"
+    },
+    {
+      "name": "cycle",
+      "color": "#ffe119"
+    }
+  ],
+  "annotations": {
+    "http://localhost:4000/uploads/0c8c8990-844f-4c98-9a21-30fe04ec7fc3/test_imag3/Ultraviolette_F77_1640839007438_1640839053135.png": [
+      {
+        "type": "bbox",
+        "x": 459.99999999999994,
+        "y": 173.84655479223454,
+        "width": 587.6923076923076,
+        "height": 414.20528666162113,
+        "opacity": 0.55,
+        "label": "l1",
+        "color": "#e6194B"
+      }
+    ],
+    "http://localhost:4000/uploads/0c8c8990-844f-4c98-9a21-30fe04ec7fc3/test_imag3/WeThePeople20ArcadeBMXBike_3_5000x.webp": [
+      {
+        "type": "bbox",
+        "x": 517.8812415654521,
+        "y": 397.7154059596808,
+        "width": 954.5951417004052,
+        "height": 578.5438444296766,
+        "opacity": 0.55,
+        "label": "l1",
+        "color": "#e6194B"
+      }
+    ]
+  },
+  "lastUpdated": "2025-04-11T10:42:01.786Z"
+}

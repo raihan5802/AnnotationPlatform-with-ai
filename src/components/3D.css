@@ -1,0 +1,98 @@
+/* src/components/3D.css */
+:root {
+    --annot-bg: #fff;
+    --annot-border: #e0e0e0;
+    --annot-shadow: var(--shadow);
+    --annot-radius: var(--radius);
+  }
+  
+  .annotate-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--background-color);
+    font-family: var(--font-family);
+  }
+  
+  .annotate-actions {
+    padding: 10px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--annot-border);
+    box-shadow: var(--annot-shadow);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .annotate-actions button {
+    padding: 8px 16px;
+    border: 1px solid var(--annot-border);
+    background: var(--secondary-color);
+    color: var(--primary-color);
+    border-radius: var(--annot-radius);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .annotate-actions button:hover {
+    background: #f0f0f0;
+  }
+  
+  .annotate-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  /* Sidebar Styles */
+  .tools-sidebar {
+    width: 260px;
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    padding: 20px;
+    border-right: 1px solid var(--annot-border);
+  }
+  
+  .tools-sidebar h3 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  /* Modal Styles */
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background: var(--secondary-color);
+    padding: 20px;
+    border-radius: var(--annot-radius);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: var(--annot-shadow);
+  }
+  
+  .modal h3 {
+    margin-bottom: 16px;
+    color: var(--primary-color);
+  }
+  
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  

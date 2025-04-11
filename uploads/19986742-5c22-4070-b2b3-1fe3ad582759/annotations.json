@@ -1,0 +1,13 @@
+{
+  "taskName": "keypoints task",
+  "labelClasses": [
+    {
+      "name": "x",
+      "color": "#e6194B"
+    }
+  ],
+  "annotations": {
+    "http://localhost:4000/uploads/19986742-5c22-4070-b2b3-1fe3ad582759/roots/download (1).jpeg": []
+  },
+  "lastUpdated": "2025-03-30T18:14:03.900Z"
+}
