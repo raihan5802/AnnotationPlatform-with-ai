@@ -66,16 +66,59 @@ export default function TaskInfo() {
   const navigate = useNavigate();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [projectType, setProjectType] = useState('');
+  const [userSession, setUserSession] = useState(null);
+  const [unauthorized, setUnauthorized] = useState(false);
+
+  // First fetch the user session
+  useEffect(() => {
+    const session = localStorage.getItem('user');
+    if (!session) {
+      localStorage.setItem('redirectAfterLogin', JSON.stringify({
+        path: `/task-info/${taskId}`
+      }));
+      navigate('/signin');
+      return;
+    }
+    const user = JSON.parse(session);
+    setUserSession(user);
+  }, [navigate, taskId]);
 
   // Fetch the task by ID
   useEffect(() => {
+    if (!userSession) return;
+
     const fetchTask = async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/tasks');
+        // Fetch tasks filtered by current user ID
+        const res = await fetch(`http://localhost:4000/api/tasks?userId=${userSession.id}`);
         if (res.ok) {
           const data = await res.json();
           const foundTask = data.find(t => t.task_id === taskId);
+
+          // Handle unauthorized access
+          if (!foundTask) {
+            setUnauthorized(true);
+            setLoading(false);
+            return;
+          }
+
           setTask(foundTask);
+
+          // Fetch project type
+          if (foundTask && foundTask.project_id) {
+            const projectRes = await fetch(`http://localhost:4000/api/projects?userId=${userSession.id}`);
+            if (projectRes.ok) {
+              const projectsData = await projectRes.json();
+              const project = projectsData.find(p => p.project_id === foundTask.project_id);
+              if (project) {
+                setProjectType(project.project_type);
+                // Add project_type to task object
+                foundTask.project_type = project.project_type;
+                setTask(foundTask);
+              }
+            }
+          }
         } else {
           console.error('Failed to fetch tasks');
         }
@@ -85,8 +128,9 @@ export default function TaskInfo() {
         setLoading(false);
       }
     };
+
     fetchTask();
-  }, [taskId]);
+  }, [taskId, userSession]);
 
   // Helpers to build a tree structure from selected_files string
   const buildTreeFromPaths = (paths) => {
@@ -118,35 +162,32 @@ export default function TaskInfo() {
     return convertToTreeNode(treeObject, 'Selected Files');
   }, [task]);
 
-  // Function to create a new job
-  const handleCreateJob = async () => {
-    const userSession = JSON.parse(localStorage.getItem('user'));
-    if (!userSession) {
-      alert("User not logged in");
-      return;
+  // Function to start annotating directly
+  const handleStartAnnotating = () => {
+    if (!task) return;
+
+    const annType = task.annotation_type ? task.annotation_type.trim().toLowerCase() : '';
+    const projType = task.project_type ? task.project_type.trim().toLowerCase() : '';
+    let redirectPath = '/detection'; // Default to detection page
+
+    if (annType === 'all') {
+      if (projType === 'image detection') redirectPath = '/detection';
+      else if (projType === 'image segmentation') redirectPath = '/segmentation';
+      else if (projType === 'image classification') redirectPath = '/classification';
+      else if (projType === '3d image annotation') redirectPath = '/3d';
+      else if (projType === 'span annotation') redirectPath = '/span';
+      else if (projType === 'relation annotation') redirectPath = '/relation';
+    } else if (annType === 'keypoints(unlimited)' || annType === 'keypoints(limited)') {
+      redirectPath = '/keypoints';
+    } else if (annType === 'caption') {
+      redirectPath = '/caption';
+    } else if (annType.includes('bbox') || annType === 'bounding box') {
+      redirectPath = '/detection';
+    } else if (annType.includes('segmentation') || annType === 'polygon') {
+      redirectPath = '/segmentation';
     }
-    try {
-      const res = await fetch('http://localhost:4000/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userSession.id,
-          taskId: task.task_id,
-          projectId: task.project_id
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        alert("Job created successfully with job id: " + data.jobId);
-        navigate('/jobs');
-      } else {
-        const errorData = await res.json();
-        alert("Error creating job: " + errorData.error);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error creating job");
-    }
+
+    navigate(redirectPath, { state: { taskId: task.task_id } });
   };
 
   if (loading) {
@@ -155,6 +196,23 @@ export default function TaskInfo() {
         <UserHomeTopBar />
         <div className="task-info-container">
           <div className="loading-spinner">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (unauthorized) {
+    return (
+      <div className="task-info-page">
+        <UserHomeTopBar />
+        <div className="task-info-container">
+          <div className="error-message">
+            <h2>Access Denied</h2>
+            <p>You don't have permission to access this task.</p>
+            <button onClick={() => navigate('/tasks')} className="back-btn">
+              Back to Tasks
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -223,6 +281,16 @@ export default function TaskInfo() {
               <span className="info-value">{task.assigned_to}</span>
             </div>
           )}
+
+          {task.project_type && (
+            <div className="info-item">
+              <div className="info-icon">
+                <FiInfo />
+              </div>
+              <span className="info-label">Project Type:</span>
+              <span className="info-value">{task.project_type}</span>
+            </div>
+          )}
         </div>
 
         {/* Annotation Type Section */}
@@ -253,9 +321,9 @@ export default function TaskInfo() {
           )}
         </div>
 
-        {/* Create Job Button */}
-        <button className="create-job-btn" onClick={handleCreateJob}>
-          <FiPlay /> Create New Job
+        {/* Start Annotating Button */}
+        <button className="start-annotating-btn" onClick={handleStartAnnotating}>
+          <FiPlay /> Start Annotating
         </button>
       </div>
     </div>

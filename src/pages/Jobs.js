@@ -13,24 +13,67 @@ export default function Jobs() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         setIsLoading(true);
+    //         try {
+    //             // Fetch jobs
+    //             const jobsRes = await fetch('http://localhost:4000/api/jobs');
+    //             if (!jobsRes.ok) throw new Error('Failed to fetch jobs');
+    //             const jobsData = await jobsRes.json();
+    //             setJobs(jobsData);
+
+    //             // Fetch tasks
+    //             const tasksRes = await fetch('http://localhost:4000/api/tasks');
+    //             if (!tasksRes.ok) throw new Error('Failed to fetch tasks');
+    //             const tasksData = await tasksRes.json();
+    //             setTasks(tasksData);
+
+    //             // Fetch projects
+    //             const projectsRes = await fetch('http://localhost:4000/api/projects');
+    //             if (!projectsRes.ok) throw new Error('Failed to fetch projects');
+    //             const projectsData = await projectsRes.json();
+    //             setProjects(projectsData);
+    //         } catch (error) {
+    //             console.error('Error fetching data:', error);
+    //         } finally {
+    //             setIsLoading(false);
+    //         }
+    //     };
+
+    //     fetchData();
+    // }, []);
+
+    // Modified useEffect for fetching data in Jobs.js
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                // Fetch jobs
-                const jobsRes = await fetch('http://localhost:4000/api/jobs');
+                // Get user session from localStorage
+                const userSession = localStorage.getItem('user');
+                if (!userSession) {
+                    navigate('/signin');
+                    return;
+                }
+
+                // Extract the user ID from the session
+                const user = JSON.parse(userSession);
+                const userId = user.id;
+
+                // Fetch jobs with userId
+                const jobsRes = await fetch(`http://localhost:4000/api/jobs?userId=${userId}`);
                 if (!jobsRes.ok) throw new Error('Failed to fetch jobs');
                 const jobsData = await jobsRes.json();
                 setJobs(jobsData);
 
-                // Fetch tasks
-                const tasksRes = await fetch('http://localhost:4000/api/tasks');
+                // Fetch tasks with userId
+                const tasksRes = await fetch(`http://localhost:4000/api/tasks?userId=${userId}`);
                 if (!tasksRes.ok) throw new Error('Failed to fetch tasks');
                 const tasksData = await tasksRes.json();
                 setTasks(tasksData);
 
-                // Fetch projects
-                const projectsRes = await fetch('http://localhost:4000/api/projects');
+                // Fetch projects with userId
+                const projectsRes = await fetch(`http://localhost:4000/api/projects?userId=${userId}`);
                 if (!projectsRes.ok) throw new Error('Failed to fetch projects');
                 const projectsData = await projectsRes.json();
                 setProjects(projectsData);
@@ -41,8 +84,15 @@ export default function Jobs() {
             }
         };
 
+        // Check if user is logged in
+        const userSession = localStorage.getItem('user');
+        if (!userSession) {
+            navigate('/signin');
+            return;
+        }
+
         fetchData();
-    }, []);
+    }, [navigate]);
 
     const combinedJobs = jobs.map(job => {
         const task = tasks.find(t => t.task_id === job.task_id) || {};
@@ -74,7 +124,9 @@ export default function Jobs() {
             else if (projType === '3d image annotation') redirectPath = '/3d';
             else if (projType === 'span annotation') redirectPath = '/span';
             else if (projType === 'relation annotation') redirectPath = '/relation';
-        } else if (annType === 'keypoints') {
+        } else if (annType === 'keypoints(unlimited)') {
+            redirectPath = '/keypoints';
+        } else if (annType === 'keypoints(limited)') {
             redirectPath = '/keypoints';
         } else if (annType === 'caption') {
             redirectPath = '/caption';

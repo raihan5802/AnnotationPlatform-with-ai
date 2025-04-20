@@ -1,277 +1,324 @@
 /* TaskInfo.css - Modern styling for annotation platform */
 
 .task-info-page {
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    color: var(--text);
-    background-color: #f8fafc;
-    min-height: 100vh;
-  }
-  
-  .task-info-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 5%;
-  }
-  
-  /* Header Section */
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: var(--text);
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.task-info-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 5%;
+}
+
+/* Header Section */
+.task-info-container h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--dark);
+  position: relative;
+  display: inline-block;
+}
+
+.task-info-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: var(--gradient);
+  border-radius: 2px;
+}
+
+/* Task Info Card */
+.task-info-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.task-info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--secondary);
+  border-radius: 50%;
+  margin-right: 1rem;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-light);
+  margin-right: 0.5rem;
+}
+
+.info-value {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Selected Files Section */
+.selected-files-section {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.selected-files-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.selected-files-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.selected-files-header h3 svg {
+  margin-right: 0.75rem;
+  color: var(--secondary);
+}
+
+/* Custom SelectedFilesTree styling */
+.files-tree {
+  padding-left: 0;
+}
+
+.files-tree ul {
+  padding-left: 1.5rem;
+}
+
+.files-tree li {
+  list-style-type: none;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.folder-node,
+.file-node {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.folder-node:hover,
+.file-node:hover {
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.folder-icon,
+.file-icon {
+  margin-right: 0.75rem;
+  color: var(--secondary);
+}
+
+.folder-name {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.file-name {
+  font-weight: 400;
+}
+
+.folder-toggle {
+  cursor: pointer;
+  margin-right: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.folder-toggle.open {
+  transform: rotate(90deg);
+}
+
+/* Annotation Type Section */
+.annotation-type-section {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.annotation-type-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.annotation-type-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.annotation-type-header h3 svg {
+  margin-right: 0.75rem;
+  color: var(--secondary);
+}
+
+.annotation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--secondary);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.annotation-badge svg {
+  margin-right: 0.5rem;
+}
+
+/* Create Job Button */
+.create-job-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.5rem;
+  background: var(--gradient, linear-gradient(to right, #3498db, #2980b9));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 300px;
+  margin: 2rem auto;
+}
+
+.create-job-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Loading State */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: var(--text-light);
+}
+
+/* Error State */
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: var(--error, #e74c3c);
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: var(--radius-md);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
   .task-info-container h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    color: var(--dark);
-    position: relative;
-    display: inline-block;
+    font-size: 2rem;
   }
-  
-  .task-info-container h2::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 0;
-    width: 60px;
-    height: 4px;
-    background: var(--gradient);
-    border-radius: 2px;
-  }
-  
-  /* Task Info Card */
-  .task-info-card {
-    background-color: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .task-info-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-  }
-  
+
   .info-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
+
   .info-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background-color: rgba(52, 152, 219, 0.1);
-    color: var(--secondary);
-    border-radius: 50%;
-    margin-right: 1rem;
-  }
-  
-  .info-label {
-    font-weight: 600;
-    color: var(--text-light);
-    margin-right: 0.5rem;
-  }
-  
-  .info-value {
-    font-weight: 500;
-    color: var(--text);
-  }
-  
-  /* Selected Files Section */
-  .selected-files-section {
-    background-color: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-  
-  .selected-files-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  .selected-files-header h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-    display: flex;
-    align-items: center;
-  }
-  
-  .selected-files-header h3 svg {
-    margin-right: 0.75rem;
-    color: var(--secondary);
-  }
-  
-  /* Custom SelectedFilesTree styling */
-  .files-tree {
-    padding-left: 0;
-  }
-  
-  .files-tree ul {
-    padding-left: 1.5rem;
-  }
-  
-  .files-tree li {
-    list-style-type: none;
     margin-bottom: 0.5rem;
-    position: relative;
   }
-  
-  .folder-node, .file-node {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.2s ease;
-  }
-  
-  .folder-node:hover, .file-node:hover {
-    background-color: rgba(52, 152, 219, 0.05);
-  }
-  
-  .folder-icon, .file-icon {
-    margin-right: 0.75rem;
-    color: var(--secondary);
-  }
-  
-  .folder-name {
-    font-weight: 500;
-    cursor: pointer;
-  }
-  
-  .file-name {
-    font-weight: 400;
-  }
-  
-  .folder-toggle {
-    cursor: pointer;
-    margin-right: 0.5rem;
-    transition: transform 0.2s ease;
-  }
-  
-  .folder-toggle.open {
-    transform: rotate(90deg);
-  }
-  
-  /* Annotation Type Section */
-  .annotation-type-section {
-    background-color: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-  
-  .annotation-type-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  .annotation-type-header h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-    display: flex;
-    align-items: center;
-  }
-  
-  .annotation-type-header h3 svg {
-    margin-right: 0.75rem;
-    color: var(--secondary);
-  }
-  
-  .annotation-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    background-color: rgba(52, 152, 219, 0.1);
-    color: var(--secondary);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    margin-top: 0.5rem;
-  }
-  
-  .annotation-badge svg {
-    margin-right: 0.5rem;
-  }
-  
-  /* Create Job Button */
+
   .create-job-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.8rem 1.5rem;
-    background: var(--gradient, linear-gradient(to right, #3498db, #2980b9));
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
     width: 100%;
-    max-width: 300px;
-    margin: 2rem auto;
   }
-  
-  .create-job-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 480px) {
+  .task-info-container {
+    padding: 1.5rem 4%;
   }
-  
-  /* Loading State */
-  .loading-spinner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    font-size: 1.2rem;
-    color: var(--text-light);
+
+  .task-info-container h2 {
+    font-size: 1.75rem;
   }
-  
-  /* Error State */
-  .error-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    font-size: 1.2rem;
-    color: var(--error, #e74c3c);
-    background-color: rgba(231, 76, 60, 0.1);
-    border-radius: var(--radius-md);
-  }
-  
-  /* Responsive Styles */
-  @media (max-width: 768px) {
-    .task-info-container h2 {
-      font-size: 2rem;
-    }
-    
-    .info-item {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .info-icon {
-      margin-bottom: 0.5rem;
-    }
-    
-    .create-job-btn {
-      width: 100%;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .task-info-container {
-      padding: 1.5rem 4%;
-    }
-    
-    .task-info-container h2 {
-      font-size: 1.75rem;
-    }
-  }
+}
+
+.start-annotating-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.2s;
+}
+
+.start-annotating-btn:hover {
+  background-color: #45a049;
+}
+
+.back-btn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.error-message h2 {
+  color: #e53935;
+  margin-bottom: 10px;
+}

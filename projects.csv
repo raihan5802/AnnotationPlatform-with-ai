@@ -1,11 +1,5 @@
 project_id,user_id,project_name,project_type,label_classes,folder_path,created_at
-fdd1530b-0448-4c46-b8ee-3494a7a949c4,1740077374191,p1,Image Detection,[{"name":"l1"|"color":"#e6194B"}|{"name":"l22"|"color":"#f032e6"}|{"name":"cycle"|"color":"#ffe119"}],uploads/0c8c8990-844f-4c98-9a21-30fe04ec7fc3,2025-03-16T16:59:12.501Z
-973217af-e075-4400-b6ff-21fe1bafcdae,1740077374191,seg proj,Image Segmentation,[{"name":"s1"|"color":"#e6194B"}|{"name":"s2"|"color":"#ff0000"}],uploads/c23f0db3-c364-4507-91d4-d1ec0d97d8a7,2025-03-17T18:44:35.406Z
-9586bc83-261a-4202-8ae8-edea0cbf4481,1740077374191,class proj,Image Classification,[{"name":"c1"|"color":"#e6194B"}|{"name":"c2"|"color":"#ffe119"}],uploads/46f88332-bc7b-4426-b07e-24b0f37c3896,2025-03-17T19:02:49.771Z
-53014e70-fb8d-4f04-b6be-e07b695ef36f,1740077374191,text 1 test,Span annotation,[{"name":"t1"|"color":"#e6194B"}|{"name":"t2"|"color":"#3cb44b"}],uploads/bd307acd-0f94-410e-a5d8-cbae30d2b457,2025-03-18T20:43:02.080Z
-5b1bd1c2-2c7b-44d8-a384-41eb56eaef8c,1740077374191,text 2 test,relation annotation,[{"name":"f"|"color":"#e6194B"}|{"name":"r"|"color":"#ff0000"}|{"name":"t"|"color":"#3cb44b"}],uploads/174fe751-29d0-436a-9f09-a39ea5935a3d,2025-03-18T20:56:39.852Z
-451ff9f4-c76a-40e1-b8be-531c4b6e1acf,1740077374191,text 3 test,document-level annotation,[{"name":"v"|"color":"#e6194B"}],uploads/5bb234fd-0826-4b90-917a-0c7677125cdc,2025-03-18T20:57:30.496Z
-8b340e0f-70b9-41b8-bcee-33010410d527,1740077374191,detection project,image detection,[{"name":"d1"|"color":"#e6194B"}|{"name":"D2"|"color":"#3cb44b"}],uploads/9e00c03f-9e87-457c-af7a-614c444da5ee,2025-03-23T19:43:12.266Z
-08f47df9-6c95-4713-b4d2-b54d01b21697,1740077374191,keypoints proj,key points annotation,[{"name":"x"|"color":"#e6194B"}],uploads/19986742-5c22-4070-b2b3-1fe3ad582759,2025-03-29T08:54:46.919Z
-536d0159-a51d-45a1-8a74-f24fb8da4152,1740077374191,cap prok,image captioning,[{"name":"c"|"color":"#e6194B"}],uploads/641872f4-545b-4df0-af96-1d3c64196e72,2025-03-29T10:03:00.850Z
-4a488ce5-d2ad-4d5d-b636-5211c37f9d3b,1740077374191,capproj1,image captioning,[{"name":"c"|"color":"#e6194B"}],uploads/4b8a4b69-f434-4404-8de3-fdda5b9c8605,2025-03-29T12:51:59.090Z
+f9901291-2234-4dcc-8691-13c17abec257,1740077374191,p1,image detection,[{"name":"p"|"color":"#e6194B"}],uploads/241ca84f-118b-4a9a-8c91-5bbd39a6aa93,2025-04-15T10:25:05.998Z
+b6cf34d7-727f-409b-a690-f3696f4768e9,1740077374191,p2,image detection,[{"name":"p2"|"color":"#e6194B"}],uploads/6536810c-1ac8-4c9e-8ea9-067339dc72b1,2025-04-15T10:39:21.698Z
+ab16a826-1640-43ca-b117-f2e028e46601,1744514095718,hello,image detection,[{"name":"afa"|"color":"#e6194B"}],uploads/7294762b-76ef-4a9c-9164-aee18df02c32,2025-04-19T06:29:53.992Z
+748a1dda-33ac-4e7d-9330-a4db04f5736b,1740077374191,tp1,image detection,[{"name":"t"|"color":"#e6194B"}],uploads/6bbfb8e4-145f-44af-82e2-f8454b8d24a2,2025-04-20T14:54:42.921Z

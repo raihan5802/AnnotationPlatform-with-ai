@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
 import './Projects.css';
-// Import a search icon component if you have it, or you can use SVG directly
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -12,12 +11,26 @@ export default function Projects() {
   const [sortBy, setSortBy] = useState('newest');
   const [filterType, setFilterType] = useState('all');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  const [userSession, setUserSession] = useState(null);
 
   useEffect(() => {
+    const userSessionData = localStorage.getItem('user');
+    if (!userSessionData) {
+      localStorage.setItem(
+        'redirectAfterLogin',
+        JSON.stringify({ path: '/projects' })
+      );
+      navigate('/signin');
+      return;
+    }
+    const user = JSON.parse(userSessionData);
+    setUserSession(user);
+
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:4000/api/projects');
+        // Pass the user ID to filter projects
+        const res = await fetch(`http://localhost:4000/api/projects?userId=${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setProjects(data);
@@ -30,16 +43,6 @@ export default function Projects() {
         setLoading(false);
       }
     };
-
-    const userSession = localStorage.getItem('user');
-    if (!userSession) {
-      localStorage.setItem(
-        'redirectAfterLogin',
-        JSON.stringify({ path: '/projects' })
-      );
-      navigate('/signin');
-      return;
-    }
 
     fetchProjects();
   }, [navigate]);
@@ -170,7 +173,6 @@ export default function Projects() {
 
         <div className="controls-container">
           <div className="search-bar-container">
-            {/* Search icon placed separately as an element */}
             <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>

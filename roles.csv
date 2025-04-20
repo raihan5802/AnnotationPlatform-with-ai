@@ -1,0 +1,4 @@
+role_id,user_id,project_id,task_id,role_type,access_control,created_at
+a39a4a32-fe0f-44a6-bf51-a77f1cdddf8d,1740077374191,748a1dda-33ac-4e7d-9330-a4db04f5736b,null,project_owner,editor,2025-04-20T14:54:42.921Z
+c3830b70-2d85-4236-880c-095419f4cde4,1744514095718,748a1dda-33ac-4e7d-9330-a4db04f5736b,null,data_provider,editor,2025-04-20T14:54:42.921Z
+95b0d77c-3ead-4e02-9177-dd09fb2b3ad7,1745160706109,748a1dda-33ac-4e7d-9330-a4db04f5736b,null,collaborator,viewer,2025-04-20T14:54:42.921Z

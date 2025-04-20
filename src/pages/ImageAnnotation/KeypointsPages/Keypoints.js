@@ -118,6 +118,17 @@ const DeleteImageIcon = () => (
     </svg>
 );
 
+const KeypointsListIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <circle cx="3" cy="6" r="2" />
+        <circle cx="3" cy="12" r="2" />
+        <circle cx="3" cy="18" r="2" />
+    </svg>
+);
+
 export default function Keypoints() {
     const navigate = useNavigate();
     const { state } = useLocation();
@@ -170,6 +181,13 @@ export default function Keypoints() {
     const canvasHelperRef = useRef(null);
     const canvasAreaRef = useRef(null);
 
+    // States for keypoints-limited functionality
+    const [isKeypointsLimited, setIsKeypointsLimited] = useState(false);
+    const [keypointsConfig, setKeypointsConfig] = useState(null);
+    const [currentPointIndex, setCurrentPointIndex] = useState(0);
+    const [newPointLabel, setNewPointLabel] = useState('');
+    const [showPointLabels, setShowPointLabels] = useState(false);
+
     // State for Keyboard Shortcuts Modal
     const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false);
 
@@ -191,7 +209,7 @@ export default function Keypoints() {
         return files;
     };
 
-    // Fetch task and project data based on taskId
+    // Fetch task and project data based on taskId and check if it's keypoints(limited)
     useEffect(() => {
         if (!taskId) {
             alert("No task id provided. Please create a task first.");
@@ -210,6 +228,10 @@ export default function Keypoints() {
                 setTaskData(task);
                 const folderPaths = task.selected_files.split(';').filter(x => x);
                 setTaskFolderPaths(folderPaths);
+
+                // Check if this is a keypoints(limited) task
+                setIsKeypointsLimited(task.annotation_type === 'keypoints(limited)');
+
                 fetch('http://localhost:4000/api/projects')
                     .then(res => res.json())
                     .then(projects => {
@@ -224,6 +246,27 @@ export default function Keypoints() {
                         if (project.label_classes && project.label_classes.length > 0) {
                             setSelectedLabelClass(project.label_classes[0].name);
                         }
+
+                        // If this is keypoints(limited), fetch the keypoints configuration
+                        if (task.annotation_type === 'keypoints(limited)') {
+                            const folderId = project.folder_path.split('/')[1];
+                            fetch(`http://localhost:4000/api/keypoints-config/${folderId}/${taskId}`)
+                                .then(res => {
+                                    if (!res.ok) {
+                                        throw new Error('Keypoints configuration not found');
+                                    }
+                                    return res.json();
+                                })
+                                .then(configData => {
+                                    setKeypointsConfig(configData);
+                                    setCurrentPointsLimit(configData.numberOfPoints);
+                                })
+                                .catch(err => {
+                                    console.error("Error fetching keypoints configuration:", err);
+                                    showHelper('Error loading keypoints configuration');
+                                });
+                        }
+
                         const fetchFolderPromises = folderPaths.map(folderPath => {
                             return fetch(`http://localhost:4000/api/folder-structure/${encodeURIComponent(folderPath)}`)
                                 .then(res => res.json());
@@ -430,7 +473,84 @@ export default function Keypoints() {
     };
 
     const handleToolChange = (tool) => {
-        setSelectedTool(tool);
+        if (isKeypointsLimited && tool === 'point') {
+            // For keypoints(limited), we don't need to prompt for points limit
+            // It's already set from the configuration
+            setSelectedTool(tool);
+            showHelper(`Point tool selected (${currentPointsLimit} points limit)`);
+        } else {
+            setSelectedTool(tool);
+        }
+    };
+
+    // Function to select the current point to label in keypoints(limited) mode
+    const selectKeypointToLabel = (index) => {
+        if (!keypointsConfig || !keypointsConfig.pointLabels) return;
+
+        // Make sure the index is valid
+        const validIndex = Math.min(Math.max(0, index), keypointsConfig.pointLabels.length - 1);
+        setCurrentPointIndex(validIndex);
+
+        // Set active label for this point
+        if (localLabelClasses.length > 0) {
+            const pointLabel = keypointsConfig.pointLabels[validIndex];
+            // Find or create a label with this name
+            const existingLabel = localLabelClasses.find(lc => lc.name === pointLabel);
+            if (existingLabel) {
+                setSelectedLabelClass(existingLabel.name);
+            } else {
+                // If no label exists with this name, use the first available label
+                setSelectedLabelClass(localLabelClasses[0].name);
+            }
+        }
+    };
+
+    // When adding a point in keypoints(limited) mode, auto-advance to the next point
+    const handlePointAdded = () => {
+        if (isKeypointsLimited && keypointsConfig && keypointsConfig.pointLabels) {
+            const nextIndex = (currentPointIndex + 1) % keypointsConfig.pointLabels.length;
+            selectKeypointToLabel(nextIndex);
+        }
+    };
+
+    const handleAddPointLabel = async () => {
+        if (!newPointLabel.trim() || !keypointsConfig || !projectData || !taskId) {
+            return;
+        }
+
+        const folderId = projectData.folder_path.split('/')[1];
+
+        // Create updated config with new label
+        const updatedConfig = {
+            ...keypointsConfig,
+            numberOfPoints: keypointsConfig.numberOfPoints + 1,
+            pointLabels: [...keypointsConfig.pointLabels, newPointLabel.trim()]
+        };
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/keypoints-config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderId: folderId,
+                    taskId: taskId,
+                    keypointsData: updatedConfig
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update keypoints configuration');
+            }
+
+            // Update local state
+            setKeypointsConfig(updatedConfig);
+            setCurrentPointsLimit(updatedConfig.numberOfPoints);
+            setNewPointLabel('');
+            showHelper(`Added new point label: ${newPointLabel}`);
+        } catch (error) {
+            console.error('Error updating keypoints configuration:', error);
+            showHelper('Failed to add new point label');
+        }
     };
 
     const activeLabelColor = localLabelClasses.find(l => l.name === selectedLabelClass)?.color || '#ff0000';
@@ -564,6 +684,25 @@ export default function Keypoints() {
                             window.dispatchEvent(event);
                         }
                         break;
+                    // Add inside the switch statement for keydown events:
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        // If in keypoints(limited) mode, number keys select the point to label
+                        if (isKeypointsLimited && keypointsConfig && keypointsConfig.pointLabels) {
+                            const index = parseInt(e.key) - 1;
+                            if (index >= 0 && index < keypointsConfig.pointLabels.length) {
+                                selectKeypointToLabel(index);
+                                showHelper(`Selected point ${index + 1}: ${keypointsConfig.pointLabels[index]}`);
+                            }
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -676,6 +815,56 @@ export default function Keypoints() {
                             <span>Current Label: {selectedLabelClass}</span>
                         </div>
                     </div>
+                    {/* new Points Labels section */}
+                    {isKeypointsLimited && keypointsConfig && (
+                        <div className="sidebar-section">
+                            <div className="section-header-with-toggle">
+                                <h3><KeypointsListIcon /> Points Labels</h3>
+                                <div className="toggle-switch">
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={showPointLabels}
+                                            onChange={() => setShowPointLabels(!showPointLabels)}
+                                        />
+                                        <span className="slider round"></span>
+                                    </label>
+                                    <span className="toggle-label">Show Labels</span>
+                                </div>
+                            </div>
+                            <div className="points-labels-list">
+                                {keypointsConfig.pointLabels.map((label, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`point-label-item ${currentPointIndex === idx ? 'active' : ''}`}
+                                        onClick={() => selectKeypointToLabel(idx)}
+                                    >
+                                        <span className="point-number">{idx + 1}</span>
+                                        <span className="point-label-name">{label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Add Points Label input and button */}
+                            <div className="add-point-label-row">
+                                <input
+                                    type="text"
+                                    placeholder="New point label"
+                                    value={newPointLabel}
+                                    onChange={(e) => setNewPointLabel(e.target.value)}
+                                    className="new-point-label-input"
+                                />
+                                <button
+                                    className="add-point-btn"
+                                    onClick={handleAddPointLabel}
+                                    disabled={!newPointLabel.trim()}
+                                >
+                                    <PlusIcon /> Add
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+
                 </div>
                 {/* Canvas */}
                 <div className="canvas-area" ref={canvasAreaRef}>
@@ -713,6 +902,12 @@ export default function Keypoints() {
                                 initialPosition={imagePosition}
                                 externalSelectedIndex={selectedAnnotationIndex}
                                 onSelectAnnotation={setSelectedAnnotationIndex}
+                                isKeypointsLimited={isKeypointsLimited}
+                                onPointAdded={handlePointAdded}
+                                currentPointLabel={isKeypointsLimited && keypointsConfig ? keypointsConfig.pointLabels[currentPointIndex] : null}
+                                showPointLabels={showPointLabels}
+                                pointLabels={isKeypointsLimited && keypointsConfig ? keypointsConfig.pointLabels : []}
+
                             />
                             {showHelperText && (
                                 <div className="canvas-helper visible" ref={canvasHelperRef}>

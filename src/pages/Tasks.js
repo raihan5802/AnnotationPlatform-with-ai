@@ -1,4 +1,3 @@
-// src/pages/Tasks.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
@@ -10,12 +9,24 @@ function Tasks() {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('newest');
+    const [userSession, setUserSession] = useState(null);
 
     useEffect(() => {
+        // Check for user session and redirect if not logged in
+        const userSessionData = localStorage.getItem('user');
+        if (!userSessionData) {
+            localStorage.setItem('redirectAfterLogin', JSON.stringify({ path: '/tasks' }));
+            navigate('/signin');
+            return;
+        }
+        const user = JSON.parse(userSessionData);
+        setUserSession(user);
+
         const fetchTasks = async () => {
             try {
                 setLoading(true);
-                const res = await fetch('http://localhost:4000/api/tasks');
+                // Pass the user ID to filter tasks
+                const res = await fetch(`http://localhost:4000/api/tasks?userId=${user.id}`);
                 if (res.ok) {
                     const data = await res.json();
                     const updatedTasks = await Promise.all(
@@ -55,7 +66,7 @@ function Tasks() {
         };
 
         fetchTasks();
-    }, []);
+    }, [navigate]);
 
     const generateTextThumbnail = (taskName) => {
         // Generate a consistent color based on the task name

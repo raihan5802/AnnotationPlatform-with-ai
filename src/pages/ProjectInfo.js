@@ -1,12 +1,10 @@
 // src/pages/ProjectInfo.js
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
-import FolderTree from '../components/FolderTree';
 import './ProjectInfo.css';
 
 // Import icons - you'll need to install react-icons package
-// npm install react-icons
 import {
     FiFolder,
     FiFile,
@@ -118,21 +116,49 @@ const EnhancedFolderTree = ({ node }) => {
 
 export default function ProjectInfo() {
     const { projectId } = useParams();
+    const navigate = useNavigate();
     const [project, setProject] = useState(null);
     const [folderTree, setFolderTree] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showAddLabelForm, setShowAddLabelForm] = useState(false);
     const [newLabelName, setNewLabelName] = useState('');
     const [suggestedColor, setSuggestedColor] = useState('');
+    const [userSession, setUserSession] = useState(null);
+    const [unauthorized, setUnauthorized] = useState(false);
+
+    // First fetch the user session
+    useEffect(() => {
+        const session = localStorage.getItem('user');
+        if (!session) {
+            localStorage.setItem('redirectAfterLogin', JSON.stringify({
+                path: `/project-info/${projectId}`
+            }));
+            navigate('/signin');
+            return;
+        }
+        const user = JSON.parse(session);
+        setUserSession(user);
+    }, [navigate, projectId]);
 
     // Fetch project details.
     useEffect(() => {
+        if (!userSession) return;
+
         const fetchProject = async () => {
             try {
-                const res = await fetch('http://localhost:4000/api/projects');
+                // First fetch all projects for this user
+                const res = await fetch(`http://localhost:4000/api/projects?userId=${userSession.id}`);
                 if (res.ok) {
                     const data = await res.json();
                     const found = data.find((proj) => proj.project_id === projectId);
+
+                    // If the project was not found in the user's projects, handle as unauthorized
+                    if (!found) {
+                        setUnauthorized(true);
+                        setLoading(false);
+                        return;
+                    }
+
                     setProject(found);
                 } else {
                     console.error('Failed to fetch projects');
@@ -144,7 +170,7 @@ export default function ProjectInfo() {
             }
         };
         fetchProject();
-    }, [projectId]);
+    }, [projectId, userSession]);
 
     // Fetch folder tree once project is loaded.
     useEffect(() => {
@@ -204,12 +230,34 @@ export default function ProjectInfo() {
         }
     };
 
+    // Redirect to new task creation
+    const handleCreateTask = () => {
+        navigate('/tasks-image-home');
+    };
+
     if (loading) {
         return (
             <div className="project-info-page">
                 <UserHomeTopBar />
                 <div className="project-info-container">
                     <div className="loading-spinner">Loading...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (unauthorized) {
+        return (
+            <div className="project-info-page">
+                <UserHomeTopBar />
+                <div className="project-info-container">
+                    <div className="error-message">
+                        <h2>Access Denied</h2>
+                        <p>You don't have permission to access this project.</p>
+                        <button onClick={() => navigate('/projects')} className="back-btn">
+                            Back to Projects
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -330,10 +378,7 @@ export default function ProjectInfo() {
 
                 {/* Actions Section */}
                 <div className="actions-section">
-                    <button className="btn upload-more-btn">
-                        <FiUploadCloud /> Upload More Data
-                    </button>
-                    <button className="btn create-task-btn">
+                    <button className="btn create-task-btn" onClick={handleCreateTask}>
                         <FiCheckSquare /> Create New Task
                     </button>
                 </div>

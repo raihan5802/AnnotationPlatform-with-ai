@@ -74,6 +74,8 @@ export default function KeypointsCanvas({
     initialPosition, // new prop for initial positioning
     externalSelectedIndex,  // New name for external selected index
     onSelectAnnotation,     // New name for selection callback
+    showPointLabels, // New prop
+    pointLabels, // New prop
 }) {
     const stageRef = useRef(null);
     const containerRef = useRef(null);
@@ -97,6 +99,8 @@ export default function KeypointsCanvas({
     // For double-click detection
     const lastClickTimeRef = useRef(0);
     const doubleClickThreshold = 250; // milliseconds
+
+    const [hoveredPointIndex, setHoveredPointIndex] = useState(null);
 
     // Add keydown listener for ESC key to dispatch cancel-annotation event
     useEffect(() => {
@@ -391,6 +395,29 @@ export default function KeypointsCanvas({
     }
 
     // Insert a new vertex between two existing ones (only for "points" annotation).
+    // function handleInsertVertex(annIndex, vertexIndex) {
+    //     const updated = [...annotations];
+    //     const ann = { ...updated[annIndex] };
+
+    //     if (ann.type !== 'points') return;
+
+    //     const shapePoints = [...ann.points];
+    //     const length = shapePoints.length;
+    //     if (length < 1) return;
+    //     if (vertexIndex === length - 1) {
+    //         return;
+    //     }
+    //     const currentPt = shapePoints[vertexIndex];
+    //     const nextPt = shapePoints[vertexIndex + 1];
+    //     const midX = (currentPt.x + nextPt.x) / 2;
+    //     const midY = (currentPt.y + nextPt.y) / 2;
+    //     shapePoints.splice(vertexIndex + 1, 0, { x: midX, y: midY });
+    //     ann.points = shapePoints;
+    //     updated[annIndex] = ann;
+    //     onAnnotationsChange(updated);
+    // }
+
+    // Insert a new vertex between two existing ones (only for "points" annotation).
     function handleInsertVertex(annIndex, vertexIndex) {
         const updated = [...annotations];
         const ann = { ...updated[annIndex] };
@@ -400,9 +427,17 @@ export default function KeypointsCanvas({
         const shapePoints = [...ann.points];
         const length = shapePoints.length;
         if (length < 1) return;
+
+        // Check if the points limit is reached
+        if (pointsLimit > 0 && shapePoints.length >= pointsLimit) {
+            // Don't add more points if limit is reached
+            return;
+        }
+
         if (vertexIndex === length - 1) {
             return;
         }
+
         const currentPt = shapePoints[vertexIndex];
         const nextPt = shapePoints[vertexIndex + 1];
         const midX = (currentPt.x + nextPt.x) / 2;
@@ -483,7 +518,22 @@ export default function KeypointsCanvas({
                                                         onSelectAnnotation(i);
                                                     }
                                                 }}
+                                                onMouseEnter={() => setHoveredPointIndex(i)}
+                                                onMouseLeave={() => setHoveredPointIndex(null)}
                                             />
+                                            {/* Point Label (shown based on toggle or hover) */}
+                                            {pointLabels && pointLabels.length > 0 &&
+                                                (showPointLabels || hoveredPointIndex === i) && (
+                                                    <Label
+                                                        x={ann.x}
+                                                        y={ann.y - 15 / scale}
+                                                        scaleX={1 / scale}
+                                                        scaleY={1 / scale}
+                                                    >
+                                                        <Tag fill={annColor} opacity={0.8} pointerDirection="down" pointerWidth={10} pointerHeight={5} />
+                                                        <Text text={pointLabels[i % pointLabels.length]} fill="#fff" padding={5} fontSize={12} />
+                                                    </Label>
+                                                )}
                                             {selectedAnnotationIndex === i && (
                                                 <DeleteLabel
                                                     annotation={ann}
@@ -513,26 +563,42 @@ export default function KeypointsCanvas({
                                                 }}
                                             >
                                                 {ann.points.map((pt, idx) => (
-                                                    <Circle
-                                                        key={idx}
-                                                        x={pt.x}
-                                                        y={pt.y}
-                                                        radius={6 / scale}
-                                                        fill={annColor}
-                                                        opacity={opacity}
-                                                        draggable
-                                                        onMouseDown={(ev) => (ev.cancelBubble = true)}
-                                                        onDragEnd={(ev) => handleVertexDragEnd(i, idx, ev)}
-                                                        onContextMenu={(ev) => {
-                                                            ev.evt.preventDefault();
-                                                            ev.cancelBubble = true;
-                                                            handleRemoveVertex(i, idx);
-                                                        }}
-                                                        onClick={(ev) => {
-                                                            ev.cancelBubble = true;
-                                                            handleInsertVertex(i, idx);
-                                                        }}
-                                                    />
+                                                    <React.Fragment key={idx}>
+                                                        <Circle
+                                                            x={pt.x}
+                                                            y={pt.y}
+                                                            radius={6 / scale}
+                                                            fill={annColor}
+                                                            opacity={opacity}
+                                                            draggable
+                                                            onMouseDown={(ev) => (ev.cancelBubble = true)}
+                                                            onDragEnd={(ev) => handleVertexDragEnd(i, idx, ev)}
+                                                            onContextMenu={(ev) => {
+                                                                ev.evt.preventDefault();
+                                                                ev.cancelBubble = true;
+                                                                handleRemoveVertex(i, idx);
+                                                            }}
+                                                            onClick={(ev) => {
+                                                                ev.cancelBubble = true;
+                                                                handleInsertVertex(i, idx);
+                                                            }}
+                                                            onMouseEnter={() => setHoveredPointIndex(`${i}-${idx}`)}
+                                                            onMouseLeave={() => setHoveredPointIndex(null)}
+                                                        />
+                                                        {/* Point Label (shown based on toggle or hover) */}
+                                                        {pointLabels && pointLabels.length > 0 &&
+                                                            (showPointLabels || hoveredPointIndex === `${i}-${idx}`) && (
+                                                                <Label
+                                                                    x={pt.x}
+                                                                    y={pt.y - 15 / scale}
+                                                                    scaleX={1 / scale}
+                                                                    scaleY={1 / scale}
+                                                                >
+                                                                    <Tag fill={annColor} opacity={0.8} pointerDirection="down" pointerWidth={10} pointerHeight={5} />
+                                                                    <Text text={pointLabels[idx % pointLabels.length]} fill="#fff" padding={5} fontSize={12} />
+                                                                </Label>
+                                                            )}
+                                                    </React.Fragment>
                                                 ))}
                                             </Group>
                                             {selectedAnnotationIndex === i && (

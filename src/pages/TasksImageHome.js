@@ -29,11 +29,11 @@ export default function TasksImageHome() {
             navigate('/signin');
             return;
         }
-        setUserSession(JSON.parse(session));
-    }, [navigate, location.state]);
+        const user = JSON.parse(session);
+        setUserSession(user);
 
-    useEffect(() => {
-        fetch('http://localhost:4000/api/projects')
+        // Fetch only projects belonging to this user
+        fetch(`http://localhost:4000/api/projects?userId=${user.id}`)
             .then((res) => res.json())
             .then((data) => {
                 setProjects(data);
@@ -42,7 +42,7 @@ export default function TasksImageHome() {
                 }
             })
             .catch((err) => console.error('Error fetching projects:', err));
-    }, []);
+    }, [navigate, location.state]);
 
     useEffect(() => {
         if (selectedProject) {
@@ -74,7 +74,6 @@ export default function TasksImageHome() {
                     options = ["caption"];
                 }
                 setAnnotationOptions(options);
-                //setAnnotationType("all");
                 setAnnotationType(options[0]); // Set to first option instead of always "all"
 
                 const parts = project.folder_path.split('/');
@@ -119,7 +118,6 @@ export default function TasksImageHome() {
         const userId = userSession.id;
         const project = projects.find(p => p.project_id === selectedProject);
         const projectName = project ? project.project_name : "";
-        //const selectedFiles = selectedFolderPaths.join(';');
 
         const payload = {
             userId,
@@ -127,7 +125,6 @@ export default function TasksImageHome() {
             taskName: taskName.trim(),
             projectName,
             annotationType,
-            //selectedFiles,
             selectedFolders,
             created_at: new Date().toISOString()
         };

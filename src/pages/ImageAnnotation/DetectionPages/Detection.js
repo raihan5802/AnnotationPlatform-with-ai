@@ -1,9 +1,71 @@
+
+// Fetch task and project data based on taskId
+// MUEED
+
+
+// Changes to Detection.js - Update the useEffect for fetching task data
+
+// Replace the existing useEffect for fetching task data with this updated version:
+
+// useEffect(() => {
+//   if (!taskId) {
+//     alert("No task id provided. Please create a task first.");
+//     navigate('/userhome');
+//     return;
+//   }
+//   fetch('http://localhost:4000/api/tasks')
+//     .then(res => res.json())
+//     .then(tasks => {
+//       const task = tasks.find(t => t.task_id === taskId);
+//       if (!task) {
+//         alert("Task not found.");
+//         navigate('/userhome');
+//         return;
+//       }
+//       setTaskData(task);
+//       const folderPaths = task.selected_files.split(';').filter(x => x);
+//       setTaskFolderPaths(folderPaths);
+//       fetch('http://localhost:4000/api/projects')
+//         .then(res => res.json())
+//         .then(projects => {
+//           const project = projects.find(p => p.project_id === task.project_id);
+//           if (!project) {
+//             alert("Project not found.");
+//             navigate('/userhome');
+//             return;
+//           }
+//           setProjectData(project);
+//           setLocalLabelClasses(project.label_classes || []);
+//           if (project.label_classes && project.label_classes.length > 0) {
+//             setSelectedLabelClass(project.label_classes[0].name);
+//           }
+//           const fetchFolderPromises = folderPaths.map(folderPath => {
+//             return fetch(`http://localhost:4000/api/folder-structure/${encodeURIComponent(folderPath)}`)
+//               .then(res => res.json());
+//           });
+//           Promise.all(fetchFolderPromises)
+//             .then(results => {
+//               let allFilesFetched = [];
+//               results.forEach((tree, idx) => {
+//                 const filesFromTree = extractFilesFromTree(tree, folderPaths[idx]);
+//                 allFilesFetched = allFilesFetched.concat(filesFromTree);
+//               });
+//               setFilesList(allFilesFetched);
+//               setAllFiles(allFilesFetched);
+//             })
+//             .catch(err => console.error("Error fetching folder structures", err));
+//         });
+//     })
+//     .catch(err => console.error("Error fetching tasks", err));
+// }, [taskId, navigate]);
+
 // src/pages/Detection.js
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import UserHomeTopBar from '../../../components/UserHomeTopBar';
-import DetectionCanvas from '../../../components/DetectionCanvas';
+import DetectionCanvas from '../../../components/DetectionCanvas/index';
 import AnnotationListSidebar from '../../../components/AnnotationListSidebar';
 import DetectionExport from './DetectionExport';
 import './Detection.css';
@@ -207,6 +269,7 @@ export default function Detection() {
   const [newLabelColor, setNewLabelColor] = useState('#ff0000');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+  const [selectedAnnotationIndices, setSelectedAnnotationIndices] = useState([]);
 
   // NEW: State for Add Image modal – for uploading a new image
   const [showAddImageModal, setShowAddImageModal] = useState(false);
@@ -245,6 +308,7 @@ export default function Detection() {
   };
 
   // Fetch task and project data based on taskId
+
   useEffect(() => {
     if (!taskId) {
       alert("No task id provided. Please create a task first.");
@@ -364,25 +428,6 @@ export default function Detection() {
     showHelper('Image fitted to canvas');
   };
 
-  // const handleCenterImage = () => {
-  //   if (currentFileUrl) {
-  //     const img = new Image();
-  //     img.src = currentFileUrl;
-  //     img.onload = () => {
-  //       if (canvasAreaRef.current) {
-  //         const canvasWidth = canvasAreaRef.current.offsetWidth;
-  //         const canvasHeight = canvasAreaRef.current.offsetHeight;
-  //         const logicalCanvasWidth = canvasWidth / scale;
-  //         const logicalCanvasHeight = canvasHeight / scale;
-  //         const xPos = (logicalCanvasWidth - img.width) / 2;
-  //         const yPos = (logicalCanvasHeight - img.height) / 2;
-  //         setImagePosition({ x: xPos, y: yPos });
-  //         showHelper('Image centered');
-  //       }
-  //     };
-  //   }
-  // };
-
   const handleCenterImage = useCallback(() => {
     if (currentFileUrl && canvasAreaRef.current) {
       const img = new Image();
@@ -411,13 +456,23 @@ export default function Detection() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [handleCenterImage]);
 
+  // const handleUseLastTool = useCallback(() => {
+  //   if (lastToolState && lastToolState.tool) {
+  //     setSelectedTool(lastToolState.tool);
+  //     setCurrentPointsLimit(lastToolState.pointsLimit || 0);
+  //     showHelper(`Switched to tool: ${lastToolState.tool}`);
+  //   }
+  // }, [lastToolState]);
+
+  // Update the existing handleUseLastTool function
+
   const handleUseLastTool = useCallback(() => {
     if (lastToolState && lastToolState.tool) {
       setSelectedTool(lastToolState.tool);
       setCurrentPointsLimit(lastToolState.pointsLimit || 0);
       showHelper(`Switched to tool: ${lastToolState.tool}`);
     }
-  }, [lastToolState]);
+  }, [lastToolState, setSelectedTool, setCurrentPointsLimit, showHelper]);
 
   useEffect(() => {
     setScale(1.0);
@@ -868,6 +923,12 @@ export default function Detection() {
                 scale={scale}
                 onWheelZoom={handleWheelZoom}
                 activeLabelColor={activeLabelColor}
+                onCancelDrawing={() => {
+                  // Reset drawing state
+                  setSelectedTool('move');
+                  setSelectedAnnotationIndex(null);
+                  showHelper('Drawing canceled');
+                }}
                 onFinishShape={() => {
                   setLastToolState({ tool: selectedTool, pointsLimit: currentPointsLimit });
                   setSelectedTool('move');
@@ -891,6 +952,8 @@ export default function Detection() {
                 initialPosition={imagePosition}
                 externalSelectedIndex={selectedAnnotationIndex}
                 onSelectAnnotation={setSelectedAnnotationIndex}
+                showLabels={false} // Set to true if you want to show labels on the annotations
+                onDblClick={handleUseLastTool}
               />
               {showHelperText && (
                 <div className="canvas-helper visible" ref={canvasHelperRef}>
@@ -932,7 +995,7 @@ export default function Detection() {
         setIsSaving={setIsSaving}
         triggerExportModal={triggerExportModal}
       />
-      {/* fix */}
+      {/* Add Label Modal */}
       {showAddLabelModal && (
         <div className="modal-backdrop">
           <div className="modal">

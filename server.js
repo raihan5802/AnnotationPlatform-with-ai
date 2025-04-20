@@ -208,9 +208,13 @@ app.get('/api/projects', (req, res) => {
     if (!fs.existsSync(projectsFilePath)) {
       return res.json([]);
     }
+
+    // Get userId from query
+    const userId = req.query.userId;
+
     const projectsContent = fs.readFileSync(projectsFilePath, 'utf8');
     const lines = projectsContent.trim().split('\n').slice(1);
-    const projects = lines.map(line => {
+    let projects = lines.map(line => {
       const [project_id, user_id, project_name, project_type, label_classes, folder_path, created_at] = line.split(',');
       return {
         project_id,
@@ -222,6 +226,11 @@ app.get('/api/projects', (req, res) => {
         created_at
       };
     });
+
+    // Filter projects by userId if provided
+    if (userId) {
+      projects = projects.filter(project => project.user_id === userId);
+    }
 
     // Find thumbnail image for each project
     projects.forEach(proj => {
@@ -270,6 +279,7 @@ app.get('/api/projects', (req, res) => {
     res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
+
 
 // Endpoint to get folder structure recursively for a given folderId
 app.get('/api/folder-structure/:folderId(*)', (req, res) => {
@@ -372,10 +382,14 @@ app.post('/api/tasks', (req, res) => {
 app.get('/api/tasks', (req, res) => {
   try {
     if (!fs.existsSync(tasksFilePath)) return res.json([]);
+
+    // Get userId from query
+    const userId = req.query.userId;
+
     const content = fs.readFileSync(tasksFilePath, 'utf8');
     // Split into lines and skip header
     const lines = content.trim().split('\n').slice(1);
-    const tasks = lines.map(line => {
+    let tasks = lines.map(line => {
       // Split on commas not inside quotes
       const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       return {
@@ -390,6 +404,12 @@ app.get('/api/tasks', (req, res) => {
         created_at: parts[7]
       };
     });
+
+    // Filter tasks by userId if provided
+    if (userId) {
+      tasks = tasks.filter(task => task.user_id === userId);
+    }
+
     res.json(tasks);
   } catch (error) {
     console.error("Error reading tasks:", error);

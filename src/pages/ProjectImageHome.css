@@ -76,8 +76,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-area label {
@@ -154,7 +161,7 @@
   height: 18px;
 }
 
-.radio-group input[type="radio"]:checked + span {
+.radio-group input[type="radio"]:checked+span {
   background: rgba(58, 134, 255, 0.1);
   border-color: var(--primary-color);
   color: var(--primary-color);
@@ -162,9 +169,17 @@
 }
 
 @keyframes selectPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Labels Section with Enhanced Visibility */
@@ -183,16 +198,20 @@
 }
 
 .labels-section h3 {
-  font-size: 1.5rem; /* Slightly larger for better visibility */
-  font-weight: 700; /* Bolder text */
-  color: var(--text-color); /* Changed from --secondary-color to a darker, more solid color */
+  font-size: 1.5rem;
+  /* Slightly larger for better visibility */
+  font-weight: 700;
+  /* Bolder text */
+  color: var(--text-color);
+  /* Changed from --secondary-color to a darker, more solid color */
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--border-color);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); /* Subtle shadow for clarity */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  /* Subtle shadow for clarity */
 }
 
 .label-form {
@@ -330,8 +349,10 @@
 .upload-folders-button {
   flex: 1;
   padding: 14px 20px;
-  background: #5fa0ff; /* Lighter blue than --primary-color for better contrast */
-  color: var(--text-color); /* Dark text for default state */
+  background: #5fa0ff;
+  /* Lighter blue than --primary-color for better contrast */
+  color: var(--text-color);
+  /* Dark text for default state */
   border: none;
   border-radius: var(--radius-md);
   font-weight: 600;
@@ -346,8 +367,10 @@
 
 .upload-files-button:hover,
 .upload-folders-button:hover {
-  background: var(--primary-hover); /* #2667ff - Darker blue on hover */
-  color: #ffffff; /* White text on hover */
+  background: var(--primary-hover);
+  /* #2667ff - Darker blue on hover */
+  color: #ffffff;
+  /* White text on hover */
   transform: translateY(-3px);
   box-shadow: 0 6px 12px rgba(58, 134, 255, 0.25);
 }
