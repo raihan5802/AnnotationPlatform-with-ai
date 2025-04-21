@@ -1,3 +1,15 @@
-notification_id,user_id,project_id,message,is_read,created_at
-72b07991-ce48-47af-9850-ad9332e26496,1744514095718,748a1dda-33ac-4e7d-9330-a4db04f5736b,You have been added to project "tp1" by user 1740077374191,false,2025-04-20T14:54:42.922Z
-77a2ebc7-c54f-4f74-9943-877369be6714,1745160706109,748a1dda-33ac-4e7d-9330-a4db04f5736b,You have been added to project "tp1" by user 1740077374191,false,2025-04-20T14:54:42.922Z
+notification_id,user_id,message,is_read,related_project_id,created_at
+d15ec0a9-d9e9-42f6-8703-208c976006b1,1744514095718,pm assigned you as data provider for project "p1",true,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T06:45:18.946Z
+87b794f9-2c0e-4a9a-bb3d-8e3c5938a1f6,1745160706109,pm assigned you as collaborator for project "p1",false,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T06:45:18.948Z
+8c2a28a5-953f-4c45-b014-3b455d937f2f,1740077374191,test uploaded data to project "p1",true,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T06:59:26.896Z
+fa7be2c1-534a-4303-a1b3-6d5815fc909d,1745160706109,test uploaded data to project "p1",false,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T06:59:26.896Z
+bb883464-fa66-414a-bf7a-805fd52edfa3,1744514095718,pm gave you view access to task "t1",true,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T08:53:18.914Z
+59f173c4-34f7-48e1-b4bb-cda142c7e5b1,1745160706109,pm gave you edit access to task "t1",false,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T08:53:18.914Z
+4a1f0209-c905-4d08-9caa-bd86f8e3f380,1744514095718,pm gave you viewer access to task "t1",true,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T10:46:01.114Z
+c903222c-3eae-415c-ba66-1ac03ce31af2,1745160706109,pm gave you editor access to task "t1",false,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T10:46:01.114Z
+24e6e7b5-83cf-44c9-a455-93332802660e,1744514095718,pm gave you viewer access to task "t1",true,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T10:46:36.115Z
+835761cd-0d90-4a33-98cf-8726872edbd9,1745160706109,pm gave you editor access to task "t1",false,54f79cd8-c64b-4a54-a85c-c41ac72bb8b8,2025-04-21T10:46:36.115Z
+6d89b89a-c0bc-440f-8e61-be98f6b0597e,1744514095718,pm assigned you as data provider for project "p1",true,ba130764-72be-409a-bae6-a28be082a509,2025-04-21T15:48:12.808Z
+8f9094e8-6764-4c6d-abc2-dfe39f70bb44,1745160706109,pm assigned you as collaborator for project "p1",false,ba130764-72be-409a-bae6-a28be082a509,2025-04-21T15:48:12.810Z
+2532adc0-6d05-49a0-8548-0f62a8c1cf55,1744514095718,pm gave you viewer access to task "t1",true,ba130764-72be-409a-bae6-a28be082a509,2025-04-21T15:50:22.051Z
+ea06386f-7b62-4786-802f-ffdb94512bab,1745160706109,pm gave you editor access to task "t1",false,ba130764-72be-409a-bae6-a28be082a509,2025-04-21T15:50:22.051Z

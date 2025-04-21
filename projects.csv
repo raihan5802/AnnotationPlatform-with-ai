@@ -1,5 +1,3 @@
 project_id,user_id,project_name,project_type,label_classes,folder_path,created_at
-f9901291-2234-4dcc-8691-13c17abec257,1740077374191,p1,image detection,[{"name":"p"|"color":"#e6194B"}],uploads/241ca84f-118b-4a9a-8c91-5bbd39a6aa93,2025-04-15T10:25:05.998Z
-b6cf34d7-727f-409b-a690-f3696f4768e9,1740077374191,p2,image detection,[{"name":"p2"|"color":"#e6194B"}],uploads/6536810c-1ac8-4c9e-8ea9-067339dc72b1,2025-04-15T10:39:21.698Z
-ab16a826-1640-43ca-b117-f2e028e46601,1744514095718,hello,image detection,[{"name":"afa"|"color":"#e6194B"}],uploads/7294762b-76ef-4a9c-9164-aee18df02c32,2025-04-19T06:29:53.992Z
-748a1dda-33ac-4e7d-9330-a4db04f5736b,1740077374191,tp1,image detection,[{"name":"t"|"color":"#e6194B"}],uploads/6bbfb8e4-145f-44af-82e2-f8454b8d24a2,2025-04-20T14:54:42.921Z
+ba130764-72be-409a-bae6-a28be082a509,1740077374191,p1,image detection,[{"name":"t"|"color":"#e6194B"}],uploads/2ca8e6a0-e43f-4a39-b4ec-109560c5c25c,2025-04-21T15:48:12.800Z,true
+88c8654c-0eb5-410b-8b76-a5e40c25683b,1740077374191,seg-proj,image segmentation,[{"name":"s"|"color":"#e6194B"}],uploads/a5f816a2-59ad-4bca-8cf9-597514374e60,2025-04-21T18:00:07.020Z,true

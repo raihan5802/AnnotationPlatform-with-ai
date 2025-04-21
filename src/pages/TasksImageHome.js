@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
 import FolderTreeCheckbox from '../components/FolderTreeCheckbox';
-import { FiFolder } from 'react-icons/fi';
+import { FiFolder, FiUsers } from 'react-icons/fi';
 import './TasksImageHome.css';
 
 export default function TasksImageHome() {
@@ -18,6 +18,9 @@ export default function TasksImageHome() {
     const [folderTree, setFolderTree] = useState(null);
     const [selectedFolders, setSelectedFolders] = useState({});
     const [isCreating, setIsCreating] = useState(false);
+
+    const [projectTeam, setProjectTeam] = useState([]);
+    const [teamAccess, setTeamAccess] = useState({});
 
     useEffect(() => {
         const session = localStorage.getItem('user');
@@ -88,6 +91,36 @@ export default function TasksImageHome() {
         }
     }, [selectedProject, projects]);
 
+    useEffect(() => {
+        if (selectedProject) {
+            // Fetch the project team members when a project is selected
+            fetch(`http://localhost:4000/api/project-team/${selectedProject}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    setProjectTeam(data);
+
+                    // Initialize access levels for all team members - default to no_access
+                    const initialAccess = {};
+                    data.forEach(member => {
+                        // Project owners automatically get editor access, skip them
+                        if (member.role_type !== 'project_owner') {
+                            initialAccess[member.user_id] = 'no_access';
+                        }
+                    });
+                    setTeamAccess(initialAccess);
+                })
+                .catch((err) => console.error('Error fetching project team:', err));
+        }
+    }, [selectedProject]);
+
+    // Function to handle access level changes
+    const handleAccessChange = (userId, value) => {
+        setTeamAccess(prev => ({
+            ...prev,
+            [userId]: value
+        }));
+    };
+
     const handleFolderSelection = (folderPath, isSelected) => {
         setSelectedFolders((prev) => ({
             ...prev,
@@ -126,6 +159,7 @@ export default function TasksImageHome() {
             projectName,
             annotationType,
             selectedFolders,
+            teamAccess,
             created_at: new Date().toISOString()
         };
 
@@ -198,6 +232,44 @@ export default function TasksImageHome() {
                         ))}
                     </select>
                 </div>
+
+                {projectTeam.length > 0 && (
+                    <div className="form-area">
+                        <label>Team Access Control</label>
+                        <div className="team-access-container">
+                            {projectTeam
+                                // Filter out project owners, as they automatically get editor access
+                                .filter(member => member.role_type !== 'project_owner')
+                                .map((member) => (
+                                    <div key={member.user_id} className="team-member-row">
+                                        <div className="team-member-info">
+                                            <div className="team-member-avatar">
+                                                {member.username.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="team-member-details">
+                                                <span className="team-member-name">{member.username}</span>
+                                                <span className="team-member-role">{member.role_type.replace('_', ' ')}</span>
+                                            </div>
+                                        </div>
+                                        <div className="access-control-dropdown">
+                                            <select
+                                                value={teamAccess[member.user_id] || 'no_access'}
+                                                onChange={(e) => handleAccessChange(member.user_id, e.target.value)}
+                                            >
+                                                <option value="no_access">No Access</option>
+                                                <option value="viewer">Viewer</option>
+                                                <option value="editor">Editor</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                ))}
+                            {projectTeam.filter(member => member.role_type !== 'project_owner').length === 0 && (
+                                <p className="no-team-members">No team members found for this project.</p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div className="folder-tree-section">
                     <h3>Select Folders</h3>
                     {folderTree ? (

@@ -633,3 +633,30 @@
         font-size: 2rem;
     }
 }
+
+.task-access-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.task-access-badge svg {
+    margin-right: 4px;
+}
+
+.access-editor {
+    color: #38a169;
+}
+
+.access-viewer {
+    color: #3182ce;
+}

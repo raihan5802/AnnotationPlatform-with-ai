@@ -16,7 +16,8 @@ import {
   FiCalendar,
   FiUsers,
   FiGrid,
-  FiPlay
+  FiPlay,
+  FiEye
 } from 'react-icons/fi';
 
 // Enhanced SelectedFilesTree component with icons
@@ -69,6 +70,8 @@ export default function TaskInfo() {
   const [projectType, setProjectType] = useState('');
   const [userSession, setUserSession] = useState(null);
   const [unauthorized, setUnauthorized] = useState(false);
+
+  const [accessLevel, setAccessLevel] = useState(null);
 
   // First fetch the user session
   useEffect(() => {
@@ -132,6 +135,21 @@ export default function TaskInfo() {
     fetchTask();
   }, [taskId, userSession]);
 
+  // Add this useEffect to fetch the user's access level
+  useEffect(() => {
+    if (!task || !userSession) return;
+
+    // Fetch the user's access level for this task
+    fetch(`http://localhost:4000/api/task-access/${task.task_id}/${userSession.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setAccessLevel(data.access_level);
+      })
+      .catch(error => {
+        console.error('Error fetching access level:', error);
+      });
+  }, [task, userSession]);
+
   // Helpers to build a tree structure from selected_files string
   const buildTreeFromPaths = (paths) => {
     const tree = {};
@@ -163,6 +181,33 @@ export default function TaskInfo() {
   }, [task]);
 
   // Function to start annotating directly
+  // const handleStartAnnotating = () => {
+  //   if (!task) return;
+
+  //   const annType = task.annotation_type ? task.annotation_type.trim().toLowerCase() : '';
+  //   const projType = task.project_type ? task.project_type.trim().toLowerCase() : '';
+  //   let redirectPath = '/detection'; // Default to detection page
+
+  //   if (annType === 'all') {
+  //     if (projType === 'image detection') redirectPath = '/detection';
+  //     else if (projType === 'image segmentation') redirectPath = '/segmentation';
+  //     else if (projType === 'image classification') redirectPath = '/classification';
+  //     else if (projType === '3d image annotation') redirectPath = '/3d';
+  //     else if (projType === 'span annotation') redirectPath = '/span';
+  //     else if (projType === 'relation annotation') redirectPath = '/relation';
+  //   } else if (annType === 'keypoints(unlimited)' || annType === 'keypoints(limited)') {
+  //     redirectPath = '/keypoints';
+  //   } else if (annType === 'caption') {
+  //     redirectPath = '/caption';
+  //   } else if (annType.includes('bbox') || annType === 'bounding box') {
+  //     redirectPath = '/detection';
+  //   } else if (annType.includes('segmentation') || annType === 'polygon') {
+  //     redirectPath = '/segmentation';
+  //   }
+
+  //   navigate(redirectPath, { state: { taskId: task.task_id } });
+  // };
+
   const handleStartAnnotating = () => {
     if (!task) return;
 
@@ -187,7 +232,13 @@ export default function TaskInfo() {
       redirectPath = '/segmentation';
     }
 
-    navigate(redirectPath, { state: { taskId: task.task_id } });
+    // Include access level in the state
+    navigate(redirectPath, {
+      state: {
+        taskId: task.task_id,
+        accessLevel: accessLevel
+      }
+    });
   };
 
   if (loading) {
@@ -322,9 +373,22 @@ export default function TaskInfo() {
         </div>
 
         {/* Start Annotating Button */}
-        <button className="start-annotating-btn" onClick={handleStartAnnotating}>
-          <FiPlay /> Start Annotating
-        </button>
+        {accessLevel && (
+          <button
+            className="start-annotating-btn"
+            onClick={handleStartAnnotating}
+          >
+            {accessLevel === 'viewer' ? (
+              <>
+                <FiEye /> View Annotations
+              </>
+            ) : (
+              <>
+                <FiPlay /> Start Annotating
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

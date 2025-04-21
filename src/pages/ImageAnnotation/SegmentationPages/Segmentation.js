@@ -182,7 +182,6 @@ const ellipseToPolygon = (ellipse, numPoints = 20) => {
     };
 };
 
-
 const convertEllipsesToPolygons = (shapes) => {
     return shapes.map((shape) => {
         if (shape.type === 'ellipse') {
@@ -276,53 +275,77 @@ export default function Segmentation() {
     // Fetch task and project data based on taskId
     useEffect(() => {
         if (!taskId) {
-            alert('No task id provided. Please create a task first.');
-            navigate('/userhome');
+            alert("No task id provided. Please create a task first.");
+            navigate('/tasks');
             return;
         }
-        fetch('http://localhost:4000/api/tasks')
-            .then((res) => res.json())
-            .then((tasks) => {
-                const task = tasks.find((t) => t.task_id === taskId);
+
+        const userSessionData = localStorage.getItem('user');
+        if (!userSessionData) {
+            navigate('/signin');
+            return;
+        }
+
+        const user = JSON.parse(userSessionData);
+
+        fetch(`http://localhost:4000/api/tasks?userId=${user.id}`)
+            .then(res => res.json())
+            .then(tasks => {
+                const task = tasks.find(t => t.task_id === taskId);
                 if (!task) {
-                    alert('Task not found.');
-                    navigate('/userhome');
+                    alert("Task not found.");
+                    navigate('/tasks');
                     return;
                 }
+
                 setTaskData(task);
-                const folderPaths = task.selected_files.split(';').filter((x) => x);
+                const folderPaths = task.selected_files.split(';').filter(x => x);
                 setTaskFolderPaths(folderPaths);
+
+                // Fetch the project details
                 fetch('http://localhost:4000/api/projects')
-                    .then((res) => res.json())
-                    .then((projects) => {
-                        const project = projects.find((p) => p.project_id === task.project_id);
+                    .then(res => res.json())
+                    .then(projects => {
+                        const project = projects.find(p => p.project_id === task.project_id);
                         if (!project) {
-                            alert('Project not found.');
+                            alert("Project not found.");
                             navigate('/userhome');
                             return;
                         }
+
                         setProjectData(project);
                         setLocalLabelClasses(project.label_classes || []);
                         if (project.label_classes && project.label_classes.length > 0) {
                             setSelectedLabelClass(project.label_classes[0].name);
                         }
-                        const fetchFolderPromises = folderPaths.map((folderPath) =>
-                            fetch(`http://localhost:4000/api/folder-structure/${encodeURIComponent(folderPath)}`).then((res) => res.json())
-                        );
-                        Promise.all(fetchFolderPromises)
-                            .then((results) => {
-                                let allFilesFetched = [];
-                                results.forEach((tree, idx) => {
-                                    const filesFromTree = extractFilesFromTree(tree, folderPaths[idx]);
-                                    allFilesFetched = allFilesFetched.concat(filesFromTree);
+
+                        // Instead of fetching and processing each folder separately,
+                        // use our new filtered API endpoint
+                        fetch(`http://localhost:4000/api/project-files/${project.project_id}?includePaths=true`)
+                            .then(res => res.json())
+                            .then(data => {
+                                // Format the files to match our expected structure
+                                const formattedFiles = data.files.map(file => {
+                                    if (typeof file === 'string') {
+                                        return { url: file, originalname: file.split('/').pop() };
+                                    }
+                                    return { url: file.url, originalname: file.path.split('/').pop() };
                                 });
-                                setFilesList(allFilesFetched);
-                                setAllFiles(allFilesFetched);
+
+                                // Only keep files that belong to the task's selected folder paths
+                                const taskFiles = formattedFiles.filter(file => {
+                                    const fileUrl = file.url;
+                                    // Check if the file URL contains any of the task folder paths
+                                    return folderPaths.some(folderPath => fileUrl.includes(folderPath));
+                                });
+
+                                setFilesList(taskFiles);
+                                setAllFiles(taskFiles);
                             })
-                            .catch((err) => console.error('Error fetching folder structures', err));
+                            .catch(err => console.error("Error fetching project files", err));
                     });
             })
-            .catch((err) => console.error('Error fetching tasks', err));
+            .catch(err => console.error("Error fetching tasks", err));
     }, [taskId, navigate]);
 
     const taskName = taskData ? taskData.task_name : '';

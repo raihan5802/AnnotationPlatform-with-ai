@@ -1,8 +1,9 @@
 // src/pages/ProjectInfo.js
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
 import './ProjectInfo.css';
+import UserDataControls from '../components/UserDataControls'; // for data provider data access
 
 // Import icons - you'll need to install react-icons package
 import {
@@ -17,8 +18,12 @@ import {
     FiChevronRight,
     FiEdit,
     FiCalendar,
-    FiUsers
+    FiUsers,
+    FiUserPlus,
+    FiUpload,
+    FiDatabase
 } from 'react-icons/fi';
+
 
 // A set of candidate colors to choose from.
 const candidateColors = [
@@ -117,6 +122,7 @@ const EnhancedFolderTree = ({ node }) => {
 export default function ProjectInfo() {
     const { projectId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [project, setProject] = useState(null);
     const [folderTree, setFolderTree] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -125,6 +131,16 @@ export default function ProjectInfo() {
     const [suggestedColor, setSuggestedColor] = useState('');
     const [userSession, setUserSession] = useState(null);
     const [unauthorized, setUnauthorized] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [files, setFiles] = useState([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const [dataProviders, setDataProviders] = useState([]);
+    const [collaborators, setCollaborators] = useState([]);
+
+    const [userDataFolders, setUserDataFolders] = useState([]);
 
     // First fetch the user session
     useEffect(() => {
@@ -138,7 +154,12 @@ export default function ProjectInfo() {
         }
         const user = JSON.parse(session);
         setUserSession(user);
-    }, [navigate, projectId]);
+
+        // Get user role from location state if available
+        if (location.state && location.state.userRole) {
+            setUserRole(location.state.userRole);
+        }
+    }, [navigate, projectId, location.state]);
 
     // Fetch project details.
     useEffect(() => {
@@ -146,31 +167,43 @@ export default function ProjectInfo() {
 
         const fetchProject = async () => {
             try {
-                // First fetch all projects for this user
-                const res = await fetch(`http://localhost:4000/api/projects?userId=${userSession.id}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const found = data.find((proj) => proj.project_id === projectId);
-
-                    // If the project was not found in the user's projects, handle as unauthorized
-                    if (!found) {
+                // First check if user has access to this project
+                const rolesRes = await fetch(`http://localhost:4000/api/project-role/${projectId}/${userSession.id}`);
+                if (rolesRes.ok) {
+                    const roleData = await rolesRes.json();
+                    if (!roleData.role) {
                         setUnauthorized(true);
                         setLoading(false);
                         return;
                     }
 
-                    setProject(found);
+                    // If role wasn't set from location state, set it now
+                    if (!userRole) {
+                        setUserRole(roleData.role);
+                    }
+
+                    // Fetch project details
+                    const projectRes = await fetch(`http://localhost:4000/api/projects/${projectId}`);
+                    if (projectRes.ok) {
+                        const projectData = await projectRes.json();
+                        setProject(projectData);
+                    } else {
+                        console.error('Failed to fetch project');
+                        setUnauthorized(true);
+                    }
                 } else {
-                    console.error('Failed to fetch projects');
+                    console.error('Failed to check project access');
+                    setUnauthorized(true);
                 }
             } catch (error) {
-                console.error('Error fetching projects:', error);
+                console.error('Error fetching project:', error);
+                setUnauthorized(true);
             } finally {
                 setLoading(false);
             }
         };
         fetchProject();
-    }, [projectId, userSession]);
+    }, [projectId, userSession, userRole]);
 
     // Fetch folder tree once project is loaded.
     useEffect(() => {
@@ -205,9 +238,61 @@ export default function ProjectInfo() {
         }
     }, [showAddLabelForm, project]);
 
+    // Add this useEffect to fetch team members
+    useEffect(() => {
+        if (project && userRole === 'project_owner') {
+            const fetchTeamMembers = async () => {
+                try {
+                    const res = await fetch(`http://localhost:4000/api/project-members/${project.project_id}`);
+                    if (res.ok) {
+                        const members = await res.json();
+
+                        setDataProviders(members.filter(member => member.role_type === 'data_provider'));
+                        setCollaborators(members.filter(member => member.role_type === 'collaborator'));
+                    } else {
+                        console.error('Failed to fetch project members');
+                    }
+                } catch (error) {
+                    console.error('Error fetching project members:', error);
+                }
+            };
+
+            fetchTeamMembers();
+        }
+    }, [project, userRole]);
+
+    // Add this useEffect for fetching user data folders
+    useEffect(() => {
+        if (project && userSession) {
+            const fetchUserDataFolders = async () => {
+                try {
+                    // For all roles, always pass the user ID to get only their uploaded data
+                    const url = `http://localhost:4000/api/project-user-data/${project.project_id}?userId=${userSession.id}`;
+
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setUserDataFolders(data);
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data folders:', error);
+                }
+            };
+
+            fetchUserDataFolders();
+        }
+    }, [project, userSession]);
+
     // Handle adding a new label.
     const handleAddLabel = async () => {
         if (!newLabelName.trim()) return;
+
+        // Only project owners can add labels
+        if (userRole !== 'project_owner') {
+            alert('Only project owners can add labels');
+            return;
+        }
+
         const newLabel = { name: newLabelName.trim(), color: suggestedColor };
         const updatedLabels = [...(project.label_classes || []), newLabel];
         try {
@@ -232,8 +317,203 @@ export default function ProjectInfo() {
 
     // Redirect to new task creation
     const handleCreateTask = () => {
+        // Only project owners can create tasks
+        if (userRole !== 'project_owner') {
+            alert('Only project owners can create tasks');
+            return;
+        }
         navigate('/tasks-image-home');
     };
+
+    // Handle file selection for data provider uploads
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        if (selectedFiles.length === 0) return;
+
+        // Determine allowed file types based on project type
+        let allowedExtensions = [];
+        if (project.project_type.toLowerCase().includes('image')) {
+            allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+        } else if (project.project_type.toLowerCase().includes('video')) {
+            allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm'];
+        } else if (project.project_type.toLowerCase().includes('text')) {
+            allowedExtensions = ['.txt', '.doc', '.docx', '.pdf'];
+        } else if (project.project_type.toLowerCase().includes('3d')) {
+            allowedExtensions = ['.obj', '.glb', '.gltf', '.ply', '.stl', '.3ds', '.fbx'];
+        }
+
+        // Filter files based on allowed extensions
+        const validFiles = selectedFiles.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return allowedExtensions.includes(extension);
+        });
+
+        if (validFiles.length !== selectedFiles.length) {
+            alert(`Only ${project.project_type.toLowerCase()} files are allowed (${allowedExtensions.join(', ')})`);
+            if (validFiles.length === 0) return;
+        }
+
+        setFiles(validFiles);
+    };
+
+    // Handle file upload for data providers
+    const handleUploadFiles = async () => {
+        if (files.length === 0) {
+            alert('Please select files to upload');
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+
+            const parts = project.folder_path.split('/');
+            const folderId = parts[1];
+
+            const formData = new FormData();
+
+            // Add userId to form data for server to determine the subfolder name
+            const userSession = JSON.parse(localStorage.getItem('user'));
+            formData.append('userId', userSession.id);
+
+            // Check if files are from folder upload
+            const hasFolderStructure = files.some(file => file.webkitRelativePath);
+
+            if (hasFolderStructure) {
+                // For folder uploads, include the relative paths
+                files.forEach(file => {
+                    formData.append('filePaths', file.webkitRelativePath);
+                    formData.append('files', file);
+                });
+            } else {
+                // For regular file uploads
+                files.forEach(file => {
+                    formData.append('files', file);
+                });
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `http://localhost:4000/api/images/${folderId}`);
+
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    const percentage = Math.round((event.loaded / event.total) * 100);
+                    setUploadProgress(percentage);
+                }
+            });
+
+            xhr.onload = async () => {
+                if (xhr.status === 200) {
+                    // Update project has_data status if this is the first upload
+                    if (!project.hasData) {
+                        await fetch(`http://localhost:4000/api/projects/${project.project_id}/update-data-status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ hasData: true })
+                        });
+
+                        // Update local state
+                        setProject({ ...project, hasData: true });
+
+                        // Send notification to project owner and collaborators
+                        await fetch(`http://localhost:4000/api/notifications/data-upload`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                projectId: project.project_id,
+                                uploader: userSession.username,
+                                projectName: project.project_name
+                            })
+                        });
+                    }
+
+                    // Refresh folder tree
+                    const res = await fetch(`http://localhost:4000/api/folder-structure/${folderId}`);
+                    if (res.ok) {
+                        const treeData = await res.json();
+                        setFolderTree(treeData);
+                    }
+
+                    setShowUploadModal(false);
+                    setFiles([]);
+                    setUploadProgress(0);
+                    alert('Files uploaded successfully');
+                } else {
+                    alert('Upload failed');
+                }
+                setIsUploading(false);
+            };
+
+            xhr.onerror = () => {
+                alert('Upload failed');
+                setIsUploading(false);
+            };
+
+            xhr.send(formData);
+
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            alert('Upload error: ' + error.message);
+            setIsUploading(false);
+        }
+    };
+
+    const handleFolderUpload = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        if (selectedFiles.length === 0) return;
+
+        // Determine allowed file types based on project type
+        let allowedExtensions = [];
+        if (project.project_type.toLowerCase().includes('image')) {
+            allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+        } else if (project.project_type.toLowerCase().includes('video')) {
+            allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm'];
+        } else if (project.project_type.toLowerCase().includes('text')) {
+            allowedExtensions = ['.txt', '.doc', '.docx', '.pdf'];
+        } else if (project.project_type.toLowerCase().includes('3d')) {
+            allowedExtensions = ['.obj', '.glb', '.gltf', '.ply', '.stl', '.3ds', '.fbx'];
+        }
+
+        // Filter files based on allowed extensions
+        const validFiles = selectedFiles.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return allowedExtensions.includes(extension);
+        });
+
+        if (validFiles.length !== selectedFiles.length) {
+            alert(`Only ${project.project_type.toLowerCase()} files are allowed (${allowedExtensions.join(', ')})`);
+            if (validFiles.length === 0) return;
+        }
+
+        setFiles(validFiles);
+    };
+
+    // Add this function to refresh data after toggle/delete
+    const handleDataControlUpdate = async () => {
+        if (project && userSession) {
+            try {
+                // Always include userId to only fetch the current user's folders
+                const url = `http://localhost:4000/api/project-user-data/${project.project_id}?userId=${userSession.id}`;
+                const res = await fetch(url);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setUserDataFolders(data);
+                }
+
+                // Also refresh the folder tree
+                const parts = project.folder_path.split('/');
+                const folderId = parts[1];
+                const treeRes = await fetch(`http://localhost:4000/api/folder-structure/${folderId}`);
+                if (treeRes.ok) {
+                    const treeData = await treeRes.json();
+                    setFolderTree(treeData);
+                }
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+    };
+
 
     if (loading) {
         return (
@@ -278,7 +558,22 @@ export default function ProjectInfo() {
         <div className="project-info-page">
             <UserHomeTopBar />
             <div className="project-info-container">
-                <h2>Project Information</h2>
+                <div className="project-info-header">
+                    <h2>Project Information</h2>
+                    <div className="role-indicator">
+                        <span className={`role-badge ${userRole === 'project_owner'
+                            ? 'owner-badge'
+                            : userRole === 'data_provider'
+                                ? 'provider-badge'
+                                : 'collaborator-badge'}`}>
+                            {userRole === 'project_owner'
+                                ? 'Owner'
+                                : userRole === 'data_provider'
+                                    ? 'Data Provider'
+                                    : 'Collaborator'}
+                        </span>
+                    </div>
+                </div>
 
                 {/* Project Info Card */}
                 <div className="project-info-card">
@@ -327,13 +622,80 @@ export default function ProjectInfo() {
                     )}
                 </div>
 
+                {userRole === 'project_owner' && (
+                    <div className="team-section">
+                        <h3><FiUsers /> Project Team</h3>
+
+                        <div className="team-container">
+                            <div className="team-column">
+                                <h4 className="team-role-title">Data Providers</h4>
+                                {dataProviders.length > 0 ? (
+                                    <ul className="team-members-list">
+                                        {dataProviders.map((member, index) => (
+                                            <li key={index} className="team-member">
+                                                <div className="team-member-avatar">
+                                                    {member.username.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="team-member-info">
+                                                    <span className="team-member-name">{member.username}</span>
+                                                    <span className="team-member-email">{member.email}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="no-members-message">No data providers assigned</p>
+                                )}
+                            </div>
+
+                            <div className="team-column">
+                                <h4 className="team-role-title">Collaborators</h4>
+                                {collaborators.length > 0 ? (
+                                    <ul className="team-members-list">
+                                        {collaborators.map((member, index) => (
+                                            <li key={index} className="team-member">
+                                                <div className="team-member-avatar">
+                                                    {member.username.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="team-member-info">
+                                                    <span className="team-member-name">{member.username}</span>
+                                                    <span className="team-member-email">{member.email}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="no-members-message">No collaborators assigned</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Data Status Indicator */}
+                {!project.hasData && (
+                    <div className="data-status-warning">
+                        <FiInfo /> This project has no data yet.
+                        {userRole === 'data_provider' && (
+                            <button
+                                className="upload-data-btn"
+                                onClick={() => setShowUploadModal(true)}
+                            >
+                                <FiUpload /> Upload Data
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 {/* Labels Section */}
                 <div className="labels-section">
                     <div className="labels-header">
                         <h3><FiTag /> Labels</h3>
-                        <button className="add-label-btn" onClick={() => setShowAddLabelForm(true)}>
-                            <FiPlusCircle /> Add Label
-                        </button>
+                        {userRole === 'project_owner' && (
+                            <button className="add-label-btn" onClick={() => setShowAddLabelForm(true)}>
+                                <FiPlusCircle /> Add Label
+                            </button>
+                        )}
                     </div>
 
                     <div className="labels-grid">
@@ -363,6 +725,14 @@ export default function ProjectInfo() {
                 <div className="folder-structure-section">
                     <div className="folder-structure-header">
                         <h3><FiFolder /> Folder Structure</h3>
+                        {userRole === 'data_provider' && (
+                            <button
+                                className="upload-files-btn"
+                                onClick={() => setShowUploadModal(true)}
+                            >
+                                <FiUploadCloud /> Upload Data
+                            </button>
+                        )}
                     </div>
 
                     {folderTree ? (
@@ -376,12 +746,47 @@ export default function ProjectInfo() {
                     )}
                 </div>
 
+                {userDataFolders.length > 0 && (
+                    <div className="data-controls-section">
+                        <div className="data-controls-header">
+                            <h3><FiDatabase /> My Uploaded Data</h3>
+                        </div>
+
+                        <div className="data-controls-description">
+                            <p>Manage your uploaded data. You can temporarily disable access to your data or delete it permanently.</p>
+                        </div>
+
+                        <div className="user-data-folders-list">
+                            {userDataFolders.map((folder, index) => (
+                                <UserDataControls
+                                    key={index}
+                                    projectId={project.project_id}
+                                    userFolder={folder.folderName}
+                                    username={folder.username}
+                                    onUpdate={handleDataControlUpdate}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Actions Section */}
-                <div className="actions-section">
-                    <button className="btn create-task-btn" onClick={handleCreateTask}>
-                        <FiCheckSquare /> Create New Task
-                    </button>
-                </div>
+                {userRole === 'project_owner' && (
+                    <div className="actions-section">
+                        <button
+                            className="btn create-task-btn"
+                            onClick={handleCreateTask}
+                            disabled={!project.hasData}
+                        >
+                            <FiCheckSquare /> Create New Task
+                        </button>
+                        {!project.hasData && (
+                            <p className="no-data-warning">
+                                <FiInfo /> Cannot create tasks until data is uploaded
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Add Label Modal */}
                 {showAddLabelForm && (
@@ -406,6 +811,89 @@ export default function ProjectInfo() {
                             <div className="modal-buttons">
                                 <button className="btn" onClick={handleAddLabel}>Add Label</button>
                                 <button className="btn cancel-btn" onClick={() => setShowAddLabelForm(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Upload Files Modal */}
+                {showUploadModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-box upload-modal">
+                            <h3>Upload Data to Project</h3>
+                            <p>Add files or folders to: {project.project_name}</p>
+
+                            <div className="upload-section">
+                                <label>Select Files or Folder</label>
+                                <div className="upload-controls">
+                                    <label htmlFor="project-file-input" className="upload-files-button">
+                                        <FiFile /> Upload Files
+                                    </label>
+                                    <span className="divider"></span>
+                                    <label htmlFor="project-folder-input" className="upload-folders-button">
+                                        <FiFolder /> Upload Folders
+                                    </label>
+                                    <input
+                                        id="project-file-input"
+                                        type="file"
+                                        multiple
+                                        onChange={handleFileChange}
+                                        disabled={isUploading}
+                                        style={{ display: 'none' }}
+                                    />
+                                    <input
+                                        id="project-folder-input"
+                                        type="file"
+                                        webkitdirectory="true"
+                                        directory="true"
+                                        onChange={handleFolderUpload}
+                                        disabled={isUploading}
+                                        style={{ display: 'none' }}
+                                    />
+                                </div>
+
+                                {files.length > 0 && (
+                                    <div className="selected-files-info">
+                                        <p>{files.length} files selected</p>
+                                        <ul className="selected-files-list">
+                                            {files.slice(0, 5).map((file, index) => (
+                                                <li key={index}>{file.name}</li>
+                                            ))}
+                                            {files.length > 5 && <li>...and {files.length - 5} more</li>}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {isUploading && (
+                                    <div className="upload-progress">
+                                        <div
+                                            className="progress-bar"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        ></div>
+                                        <span className="progress-text">{uploadProgress}%</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="modal-buttons">
+                                <button
+                                    className="btn"
+                                    onClick={handleUploadFiles}
+                                    disabled={isUploading || files.length === 0}
+                                >
+                                    {isUploading ? 'Uploading...' : 'Upload Files'}
+                                </button>
+                                <button
+                                    className="btn cancel-btn"
+                                    onClick={() => {
+                                        setShowUploadModal(false);
+                                        setFiles([]);
+                                        setUploadProgress(0);
+                                    }}
+                                    disabled={isUploading}
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         </div>
                     </div>

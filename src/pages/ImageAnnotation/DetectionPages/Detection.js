@@ -1,64 +1,3 @@
-
-// Fetch task and project data based on taskId
-// MUEED
-
-
-// Changes to Detection.js - Update the useEffect for fetching task data
-
-// Replace the existing useEffect for fetching task data with this updated version:
-
-// useEffect(() => {
-//   if (!taskId) {
-//     alert("No task id provided. Please create a task first.");
-//     navigate('/userhome');
-//     return;
-//   }
-//   fetch('http://localhost:4000/api/tasks')
-//     .then(res => res.json())
-//     .then(tasks => {
-//       const task = tasks.find(t => t.task_id === taskId);
-//       if (!task) {
-//         alert("Task not found.");
-//         navigate('/userhome');
-//         return;
-//       }
-//       setTaskData(task);
-//       const folderPaths = task.selected_files.split(';').filter(x => x);
-//       setTaskFolderPaths(folderPaths);
-//       fetch('http://localhost:4000/api/projects')
-//         .then(res => res.json())
-//         .then(projects => {
-//           const project = projects.find(p => p.project_id === task.project_id);
-//           if (!project) {
-//             alert("Project not found.");
-//             navigate('/userhome');
-//             return;
-//           }
-//           setProjectData(project);
-//           setLocalLabelClasses(project.label_classes || []);
-//           if (project.label_classes && project.label_classes.length > 0) {
-//             setSelectedLabelClass(project.label_classes[0].name);
-//           }
-//           const fetchFolderPromises = folderPaths.map(folderPath => {
-//             return fetch(`http://localhost:4000/api/folder-structure/${encodeURIComponent(folderPath)}`)
-//               .then(res => res.json());
-//           });
-//           Promise.all(fetchFolderPromises)
-//             .then(results => {
-//               let allFilesFetched = [];
-//               results.forEach((tree, idx) => {
-//                 const filesFromTree = extractFilesFromTree(tree, folderPaths[idx]);
-//                 allFilesFetched = allFilesFetched.concat(filesFromTree);
-//               });
-//               setFilesList(allFilesFetched);
-//               setAllFiles(allFilesFetched);
-//             })
-//             .catch(err => console.error("Error fetching folder structures", err));
-//         });
-//     })
-//     .catch(err => console.error("Error fetching tasks", err));
-// }, [taskId, navigate]);
-
 // src/pages/Detection.js
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -239,6 +178,10 @@ export default function Detection() {
   const { state } = useLocation();
   // Expect taskId from location.state
   const taskId = state?.taskId;
+  const accessLevel = state?.accessLevel || 'editor'; // Default to editor if not provided
+
+  // Add a state to track if user is in view-only mode
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   // New state variables for task & project data and files list
   const [taskData, setTaskData] = useState(null);
@@ -308,25 +251,36 @@ export default function Detection() {
   };
 
   // Fetch task and project data based on taskId
-
   useEffect(() => {
     if (!taskId) {
       alert("No task id provided. Please create a task first.");
-      navigate('/userhome');
+      navigate('/tasks');
       return;
     }
-    fetch('http://localhost:4000/api/tasks')
+
+    const userSessionData = localStorage.getItem('user');
+    if (!userSessionData) {
+      navigate('/signin');
+      return;
+    }
+
+    const user = JSON.parse(userSessionData);
+
+    fetch(`http://localhost:4000/api/tasks?userId=${user.id}`)
       .then(res => res.json())
       .then(tasks => {
         const task = tasks.find(t => t.task_id === taskId);
         if (!task) {
           alert("Task not found.");
-          navigate('/userhome');
+          navigate('/tasks');
           return;
         }
+
         setTaskData(task);
         const folderPaths = task.selected_files.split(';').filter(x => x);
         setTaskFolderPaths(folderPaths);
+
+        // Fetch the project details
         fetch('http://localhost:4000/api/projects')
           .then(res => res.json())
           .then(projects => {
@@ -336,30 +290,131 @@ export default function Detection() {
               navigate('/userhome');
               return;
             }
+
             setProjectData(project);
             setLocalLabelClasses(project.label_classes || []);
             if (project.label_classes && project.label_classes.length > 0) {
               setSelectedLabelClass(project.label_classes[0].name);
             }
-            const fetchFolderPromises = folderPaths.map(folderPath => {
-              return fetch(`http://localhost:4000/api/folder-structure/${encodeURIComponent(folderPath)}`)
-                .then(res => res.json());
-            });
-            Promise.all(fetchFolderPromises)
-              .then(results => {
-                let allFilesFetched = [];
-                results.forEach((tree, idx) => {
-                  const filesFromTree = extractFilesFromTree(tree, folderPaths[idx]);
-                  allFilesFetched = allFilesFetched.concat(filesFromTree);
+
+            // Instead of fetching and processing each folder separately,
+            // use our new filtered API endpoint
+            fetch(`http://localhost:4000/api/project-files/${project.project_id}?includePaths=true`)
+              .then(res => res.json())
+              .then(data => {
+                // Format the files to match our expected structure
+                const formattedFiles = data.files.map(file => {
+                  if (typeof file === 'string') {
+                    return { url: file, originalname: file.split('/').pop() };
+                  }
+                  return { url: file.url, originalname: file.path.split('/').pop() };
                 });
-                setFilesList(allFilesFetched);
-                setAllFiles(allFilesFetched);
+
+                // Only keep files that belong to the task's selected folder paths
+                const taskFiles = formattedFiles.filter(file => {
+                  const fileUrl = file.url;
+                  // Check if the file URL contains any of the task folder paths
+                  return folderPaths.some(folderPath => fileUrl.includes(folderPath));
+                });
+
+                setFilesList(taskFiles);
+                setAllFiles(taskFiles);
               })
-              .catch(err => console.error("Error fetching folder structures", err));
+              .catch(err => console.error("Error fetching project files", err));
           });
       })
       .catch(err => console.error("Error fetching tasks", err));
   }, [taskId, navigate]);
+
+  // Set view-only mode based on access level
+  useEffect(() => {
+    if (accessLevel === 'viewer') {
+      setIsViewOnly(true);
+      // Set tool to move only for viewers
+      setSelectedTool('move');
+    }
+  }, [accessLevel]);
+
+  // Add a WebSocket connection to listen for data access changes
+  // Add this useEffect after the existing ones
+
+  useEffect(() => {
+    if (!projectData) return;
+
+    // Create WebSocket connection
+    const ws = new WebSocket(`ws://localhost:4000`);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+
+        // If we receive a data change notification for our project, reload the files
+        if (message.type === 'DATA_CHANGE' && message.projectId === projectData.project_id) {
+          console.log('Data access changed, reloading files');
+
+          // Reload files from the API
+          fetch(`http://localhost:4000/api/project-files/${projectData.project_id}?includePaths=true`)
+            .then(res => res.json())
+            .then(data => {
+              // Format the files to match our expected structure
+              const formattedFiles = data.files.map(file => {
+                if (typeof file === 'string') {
+                  return { url: file, originalname: file.split('/').pop() };
+                }
+                return { url: file.url, originalname: file.path.split('/').pop() };
+              });
+
+              // Only keep files that belong to the task's selected folder paths
+              const taskFolderPaths = taskData.selected_files.split(';').filter(x => x);
+              const taskFiles = formattedFiles.filter(file => {
+                const fileUrl = file.url;
+                // Check if the file URL contains any of the task folder paths
+                return taskFolderPaths.some(folderPath => fileUrl.includes(folderPath));
+              });
+
+              // Save the current URL to try to maintain position
+              const currentUrl = filesList[currentIndex]?.url;
+
+              // Update the files list
+              setFilesList(taskFiles);
+              setAllFiles(taskFiles);
+
+              // Adjust current index if needed
+              if (taskFiles.length === 0) {
+                setCurrentIndex(0);
+              } else if (currentUrl) {
+                // Try to find the same file in the new list
+                const newIndex = taskFiles.findIndex(file => file.url === currentUrl);
+                if (newIndex >= 0) {
+                  setCurrentIndex(newIndex);
+                } else {
+                  // If not found, set to the nearest position or start
+                  setCurrentIndex(Math.min(currentIndex, taskFiles.length - 1));
+                }
+              }
+            })
+            .catch(err => console.error("Error reloading files", err));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    // Clean up the WebSocket connection when the component unmounts
+    return () => {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
+    };
+  }, [projectData, taskData, currentIndex, filesList]);
 
   const taskName = taskData ? taskData.task_name : '';
   const currentFileUrl = filesList[currentIndex]?.url;
@@ -467,12 +522,18 @@ export default function Detection() {
   // Update the existing handleUseLastTool function
 
   const handleUseLastTool = useCallback(() => {
+
+    if (isViewOnly) {
+      showHelper('View-only mode: Cannot change tools');
+      return;
+    }
+
     if (lastToolState && lastToolState.tool) {
       setSelectedTool(lastToolState.tool);
       setCurrentPointsLimit(lastToolState.pointsLimit || 0);
       showHelper(`Switched to tool: ${lastToolState.tool}`);
     }
-  }, [lastToolState, setSelectedTool, setCurrentPointsLimit, showHelper]);
+  }, [lastToolState, isViewOnly, setSelectedTool, setCurrentPointsLimit, showHelper]);
 
   useEffect(() => {
     setScale(1.0);
@@ -498,6 +559,9 @@ export default function Detection() {
 
   // Updated handleAnnotationsChange: convert ellipses to polygons before storing
   const handleAnnotationsChange = (newShapes) => {
+
+    if (isViewOnly) return;
+
     const convertedShapes = newShapes.map(shape => {
       if (shape.type === 'ellipse') {
         return convertEllipseToPolygon(shape);
@@ -527,12 +591,33 @@ export default function Detection() {
     setSelectedAnnotationIndex(null);
   }, [currentIndex, currentFileUrl]);
 
-  const handlePrev = () => {
-    if (currentIndex > 0) setCurrentIndex(i => i - 1);
-  };
+  const handlePrev = async () => {
+    if (currentIndex > 0) {
+      // Skip saving step for viewers
+      if (isViewOnly) {
+        setCurrentIndex(i => i - 1);
+        return;
+      }
+
+      // For editors, save first if needed
+      const saved = await handleSave();
+      if (saved) {
+        setCurrentIndex(i => i - 1);
+      } else {
+        alert('Failed to save annotations. Please try again.');
+      }
+    }
+  };;
 
   const handleNext = async () => {
     if (currentIndex < filesList.length - 1) {
+      // Skip saving step for viewers
+      if (isViewOnly) {
+        setCurrentIndex(i => i + 1);
+        return;
+      }
+
+      // Otherwise try to save first (for editors)
       const saved = await handleSave();
       if (saved) {
         setCurrentIndex(i => i + 1);
@@ -550,6 +635,12 @@ export default function Detection() {
   };
 
   const handleSave = async () => {
+
+    if (isViewOnly) {
+      showHelper('You have view-only access to this task');
+      return false;
+    }
+
     setIsSaving(true);
     const folderId = projectData ? projectData.folder_path.split('/')[1] : '';
     const bodyData = {
@@ -580,6 +671,12 @@ export default function Detection() {
   };
 
   const handleFillBackground = () => {
+
+    if (isViewOnly) {
+      showHelper('View-only mode: Cannot modify annotations');
+      return;
+    }
+
     if (!currentFileUrl) return;
     const img = new Image();
     img.src = currentFileUrl;
@@ -650,6 +747,12 @@ export default function Detection() {
 
   // Updated handleToolChange: now simply sets the selected tool
   const handleToolChange = (tool) => {
+
+    if (isViewOnly) {
+      showHelper('View-only mode: Cannot change tools');
+      return;
+    }
+
     setSelectedTool(tool);
   };
 
@@ -710,24 +813,29 @@ export default function Detection() {
       // Don't trigger shortcuts if user is typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+      // Always allow navigation shortcuts regardless of view mode
+      const allowedInViewMode = ['ArrowLeft', 'ArrowRight', 'c', 'C', 'f', 'F'];
+      const isZoomShortcut = (e.ctrlKey && (e.key === '-' || e.key === '+' || e.key === '='));
+
+      // If in view-only mode, only allow specific shortcuts
+      if (isViewOnly && !allowedInViewMode.includes(e.key) && !isZoomShortcut) {
+        return; // Ignore all other shortcuts in view-only mode
+      }
+
       // Handle Ctrl + key combinations
       if (e.ctrlKey) {
         switch (e.key) {
           case 'z':
-            e.preventDefault();
-            if (undoStack.length > 0) undo();
+            if (!isViewOnly && undoStack.length > 0) { e.preventDefault(); undo(); }
             break;
           case 'y':
-            e.preventDefault();
-            if (redoStack.length > 0) redo();
+            if (!isViewOnly && redoStack.length > 0) { e.preventDefault(); redo(); }
             break;
           case 's':
-            e.preventDefault();
-            handleSave();
+            if (!isViewOnly) { e.preventDefault(); handleSave(); }
             break;
           case 'b':
-            e.preventDefault();
-            handleFillBackground();
+            if (!isViewOnly) { e.preventDefault(); handleFillBackground(); }
             break;
           case '-':
             e.preventDefault();
@@ -746,8 +854,7 @@ export default function Detection() {
         switch (e.key) {
           case 'n':
           case 'N':
-            e.preventDefault();
-            handleUseLastTool();
+            if (!isViewOnly) { e.preventDefault(); handleUseLastTool(); }
             break;
           case 'f':
           case 'F':
@@ -761,23 +868,23 @@ export default function Detection() {
             break;
           case 'm':
           case 'M':
-            setSelectedTool('move');
+            if (!isViewOnly) setSelectedTool('move');
             break;
           case 'b':
           case 'B':
-            setSelectedTool('bbox');
+            if (!isViewOnly) setSelectedTool('bbox');
             break;
           case 'p':
           case 'P':
-            handleToolChange('polygon');
+            if (!isViewOnly) handleToolChange('polygon');
             break;
           case 'l':
           case 'L':
-            handleToolChange('polyline');
+            if (!isViewOnly) handleToolChange('polyline');
             break;
           case 'e':
           case 'E':
-            setSelectedTool('ellipse');
+            if (!isViewOnly) setSelectedTool('ellipse');
             break;
           default:
             break;
@@ -789,7 +896,7 @@ export default function Detection() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleUseLastTool, undoStack, redoStack, currentIndex, filesList.length]);
+  }, [handleUseLastTool, undoStack, redoStack, currentIndex, filesList.length, isViewOnly]);
 
   return (
     <div className="annotate-container">
@@ -804,17 +911,17 @@ export default function Detection() {
       />
       <UserHomeTopBar taskName={taskName} showControls={true} isSaving={isSaving} />
       <div className="annotate-actions">
-        <button onClick={undo} disabled={undoStack.length === 0} title="Undo (Ctrl+Z)">
+        <button onClick={undo} disabled={undoStack.length === 0 || isViewOnly} title="Undo (Ctrl+Z)">
           <UndoIcon /> Undo
         </button>
-        <button onClick={redo} disabled={redoStack.length === 0} title="Redo (Ctrl+Y)">
+        <button onClick={redo} disabled={redoStack.length === 0 || isViewOnly} title="Redo (Ctrl+Y)">
           <RedoIcon /> Redo
         </button>
         <div className="divider"></div>
-        <button onClick={handleSave} className="primary" disabled={isSaving} title="Save (Ctrl+S)">
+        <button onClick={handleSave} className="primary" disabled={isSaving || isViewOnly} title="Save (Ctrl+S)">
           <SaveIcon /> {isSaving ? 'Saving...' : 'Save'}
         </button>
-        <button onClick={handleFillBackground} title="Fill Background">
+        <button onClick={handleFillBackground} disabled={isViewOnly} title="Fill Background">
           <BackgroundIcon /> Background
         </button>
         <button onClick={handleCenterImage} title="Center Image (C)">
@@ -831,10 +938,10 @@ export default function Detection() {
         >
           Next
         </button>
-        <button onClick={handleAddImage} disabled={isSaving} title="Add Image">
+        <button onClick={handleAddImage} disabled={isSaving || isViewOnly} title="Add Image">
           <AddImageIcon /> Add Image
         </button>
-        <button onClick={handleDeleteImage} disabled={isDeleting || filesList.length === 0} title="Delete Current Image">
+        <button onClick={handleDeleteImage} disabled={isDeleting || filesList.length === 0 || isViewOnly} title="Delete Current Image">
           <DeleteImageIcon /> Delete Image
         </button>
         <button onClick={() => setShowKeyboardShortcutsModal(true)}>
@@ -843,7 +950,7 @@ export default function Detection() {
         <div className="divider"></div>
         <button onClick={handleZoomOut}>- Zoom</button>
         <button onClick={handleZoomIn}>+ Zoom</button>
-        <button onClick={handleExportTrigger}>Export</button>
+        <button onClick={handleExportTrigger} disabled={isViewOnly}>Export</button>
         <span className="img-count">{currentIndex + 1} / {filesList.length}</span>
       </div>
       <div className="annotate-main">
@@ -851,28 +958,36 @@ export default function Detection() {
         <div className="tools-sidebar">
           <div className="sidebar-section">
             <h3><ToolsIcon /> Tools</h3>
-            <div className="tool-grid">
-              <div className={`tool-button ${selectedTool === 'move' ? 'active' : ''}`} onClick={() => setSelectedTool('move')} title="Move Tool (M)">
+
+            {isViewOnly && (
+              <div className="view-only-notice">
+                <div className="view-only-badge">View Only Mode</div>
+                <p>You have view-only access to this task</p>
+              </div>
+            )}
+
+            <div className="tool-grid" style={{ opacity: isViewOnly ? 0.5 : 1 }}>
+              <div className={`tool-button ${selectedTool === 'move' ? 'active' : ''}`} onClick={() => !isViewOnly && setSelectedTool('move')} title="Move Tool (M)" style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <div className="tool-icon"><MoveIcon /></div>
                 <div className="tool-name">Move</div>
                 <div className="keyboard-hint">M</div>
               </div>
-              <div className={`tool-button ${selectedTool === 'bbox' ? 'active' : ''}`} onClick={() => setSelectedTool('bbox')} title="Bounding Box Tool (B)">
+              <div className={`tool-button ${selectedTool === 'bbox' ? 'active' : ''}`} onClick={() => !isViewOnly && setSelectedTool('bbox')} title="Bounding Box Tool (B)" style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <div className="tool-icon"><BboxIcon /></div>
                 <div className="tool-name">BBox</div>
                 <div className="keyboard-hint">B</div>
               </div>
-              <div className={`tool-button ${selectedTool === 'polygon' ? 'active' : ''}`} onClick={() => handleToolChange('polygon')} title="Polygon Tool (P)">
+              <div className={`tool-button ${selectedTool === 'polygon' ? 'active' : ''}`} onClick={() => !isViewOnly && handleToolChange('polygon')} title="Polygon Tool (P)" style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <div className="tool-icon"><PolygonIcon /></div>
                 <div className="tool-name">Polygon</div>
                 <div className="keyboard-hint">P</div>
               </div>
-              <div className={`tool-button ${selectedTool === 'polyline' ? 'active' : ''}`} onClick={() => handleToolChange('polyline')} title="Polyline Tool (L)">
+              <div className={`tool-button ${selectedTool === 'polyline' ? 'active' : ''}`} onClick={() => !isViewOnly && handleToolChange('polyline')} title="Polyline Tool (L)" style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <div className="tool-icon"><PolylineIcon /></div>
                 <div className="tool-name">Polyline</div>
                 <div className="keyboard-hint">L</div>
               </div>
-              <div className={`tool-button ${selectedTool === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectedTool('ellipse')} title="Ellipse Tool (E)">
+              <div className={`tool-button ${selectedTool === 'ellipse' ? 'active' : ''}`} onClick={() => !isViewOnly && setSelectedTool('ellipse')} title="Ellipse Tool (E)" style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <div className="tool-icon"><EllipseIcon /></div>
                 <div className="tool-name">Ellipse</div>
                 <div className="keyboard-hint">E</div>
@@ -900,7 +1015,7 @@ export default function Detection() {
                   <option key={i} value={lc.name}>{lc.name}</option>
                 ))}
               </select>
-              <button onClick={() => setShowAddLabelModal(true)}>
+              <button onClick={() => !isViewOnly && setShowAddLabelModal(true)} style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer' }}>
                 <PlusIcon /> Add Label
               </button>
             </div>
@@ -919,23 +1034,26 @@ export default function Detection() {
                 fileUrl={currentFileUrl}
                 annotations={currentShapes}
                 onAnnotationsChange={handleAnnotationsChange}
-                selectedTool={selectedTool}
+                selectedTool={isViewOnly ? 'move' : selectedTool}
                 scale={scale}
                 onWheelZoom={handleWheelZoom}
                 activeLabelColor={activeLabelColor}
                 onCancelDrawing={() => {
+                  if (isViewOnly) return;
                   // Reset drawing state
                   setSelectedTool('move');
                   setSelectedAnnotationIndex(null);
                   showHelper('Drawing canceled');
                 }}
                 onFinishShape={() => {
+                  if (isViewOnly) return;
                   setLastToolState({ tool: selectedTool, pointsLimit: currentPointsLimit });
                   setSelectedTool('move');
                   setSelectedAnnotationIndex(null);
                   showHelper('Annotation completed');
                 }}
                 onDeleteAnnotation={(index) => {
+                  if (isViewOnly) return;
                   const arr = [...currentShapes];
                   arr.splice(index, 1);
                   handleAnnotationsChange(arr);
@@ -951,9 +1069,10 @@ export default function Detection() {
                 pointsLimit={currentPointsLimit}
                 initialPosition={imagePosition}
                 externalSelectedIndex={selectedAnnotationIndex}
-                onSelectAnnotation={setSelectedAnnotationIndex}
+                onSelectAnnotation={!isViewOnly ? setSelectedAnnotationIndex : () => { }}
                 showLabels={false} // Set to true if you want to show labels on the annotations
-                onDblClick={handleUseLastTool}
+                onDblClick={!isViewOnly ? handleUseLastTool : () => { }}
+                isViewOnly={isViewOnly}
               />
               {showHelperText && (
                 <div className="canvas-helper visible" ref={canvasHelperRef}>

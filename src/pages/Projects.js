@@ -12,6 +12,7 @@ export default function Projects() {
   const [filterType, setFilterType] = useState('all');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [userSession, setUserSession] = useState(null);
+  const [userRoles, setUserRoles] = useState({}); // Store role for each project
 
   useEffect(() => {
     const userSessionData = localStorage.getItem('user');
@@ -29,11 +30,12 @@ export default function Projects() {
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        // Pass the user ID to filter projects
-        const res = await fetch(`http://localhost:4000/api/projects?userId=${user.id}`);
+        // Get all projects this user has access to (as owner, data provider, or collaborator)
+        const res = await fetch(`http://localhost:4000/api/user-projects/${user.id}`);
         if (res.ok) {
           const data = await res.json();
-          setProjects(data);
+          setProjects(data.projects);
+          setUserRoles(data.roles);
         } else {
           console.error('Failed to fetch projects');
         }
@@ -49,6 +51,13 @@ export default function Projects() {
 
   const handleDelete = async (projectId, e) => {
     e.stopPropagation();
+
+    // Only project owners can delete projects
+    if (userRoles[projectId] !== 'project_owner') {
+      alert('Only project owners can delete projects');
+      return;
+    }
+
     if (deleteConfirmation === projectId) {
       try {
         const res = await fetch(`http://localhost:4000/api/projects/${projectId}`, {
@@ -71,6 +80,19 @@ export default function Projects() {
   const cancelDelete = (e) => {
     e.stopPropagation();
     setDeleteConfirmation(null);
+  };
+
+  const handleProjectClick = (project) => {
+    const role = userRoles[project.project_id];
+
+    // Collaborators can't access project info
+    if (role === 'collaborator') {
+      return;
+    }
+
+    navigate(`/project-info/${project.project_id}`, {
+      state: { userRole: role }
+    });
   };
 
   const sortProjects = (projectsList) => {
@@ -145,6 +167,11 @@ export default function Projects() {
   };
 
   const getProjectStatusBadge = (project) => {
+    // Check if project has no data
+    if (!project.hasData) {
+      return <span className="status-badge no-data-badge">No Data</span>;
+    }
+
     const createdDate = new Date(project.created_at || 0);
     const now = new Date();
     const daysSinceCreation = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
@@ -154,6 +181,49 @@ export default function Projects() {
       return <span className="status-badge in-progress-badge">In Progress</span>;
     }
     return null;
+  };
+
+  const getRoleBadge = (projectId) => {
+    const role = userRoles[projectId];
+    if (!role) return null;
+
+    let badgeClass = '';
+    let roleName = '';
+
+    switch (role) {
+      case 'project_owner':
+        badgeClass = 'owner-badge';
+        roleName = 'Owner';
+        break;
+      case 'data_provider':
+        badgeClass = 'provider-badge';
+        roleName = 'Data Provider';
+        break;
+      case 'collaborator':
+        badgeClass = 'collaborator-badge';
+        roleName = 'Collaborator';
+        break;
+      default:
+        return null;
+    }
+
+    return <span className={`role-badge ${badgeClass}`}>{roleName}</span>;
+  };
+
+  const getCardClass = (project) => {
+    let classes = "project-card";
+
+    // Add no-data class for red border when the project has no data
+    if (!project.hasData) {
+      classes += " no-data-card";
+    }
+
+    // Add disabled class for collaborators if there's no data
+    if (userRoles[project.project_id] === 'collaborator' && !project.hasData) {
+      classes += " disabled-card";
+    }
+
+    return classes;
   };
 
   let filteredProjects = projects.filter(proj =>
@@ -239,37 +309,40 @@ export default function Projects() {
                 {filteredProjects.map((proj) => (
                   <div
                     key={proj.project_id}
-                    className="project-card"
-                    onClick={() => navigate(`/project-info/${proj.project_id}`)}
+                    className={getCardClass(proj)}
+                    onClick={() => handleProjectClick(proj)}
                   >
                     <div className="project-card-header">
                       <div className="project-type-icon">
                         {getProjectTypeIcon(proj.project_type)}
                       </div>
+                      {getRoleBadge(proj.project_id)}
                       <div className="project-actions">
-                        {deleteConfirmation === proj.project_id ? (
-                          <>
+                        {userRoles[proj.project_id] === 'project_owner' && (
+                          deleteConfirmation === proj.project_id ? (
+                            <>
+                              <button
+                                className="confirm-delete-btn"
+                                onClick={(e) => handleDelete(proj.project_id, e)}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                className="cancel-delete-btn"
+                                onClick={cancelDelete}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
                             <button
-                              className="confirm-delete-btn"
+                              className="delete-btn"
                               onClick={(e) => handleDelete(proj.project_id, e)}
+                              aria-label="Delete project"
                             >
-                              Confirm
+                              ×
                             </button>
-                            <button
-                              className="cancel-delete-btn"
-                              onClick={cancelDelete}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            className="delete-btn"
-                            onClick={(e) => handleDelete(proj.project_id, e)}
-                            aria-label="Delete project"
-                          >
-                            ×
-                          </button>
+                          )
                         )}
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserHomeTopBar from '../components/UserHomeTopBar';
+import { FiEdit2, FiEye } from 'react-icons/fi';
 import './Tasks.css';
 
 function Tasks() {
@@ -190,6 +191,21 @@ function Tasks() {
                     <div className="task-overlay">
                         <span className="task-icon">{isTextAnnotation ? "📝" : "🖼️"}</span>
                     </div>
+
+                    {task.access_level && (
+                        <div className="task-access-badge">
+                            {task.access_level === 'editor' ? (
+                                <span className="access-editor">
+                                    <FiEdit2 /> Editor
+                                </span>
+                            ) : (
+                                <span className="access-viewer">
+                                    <FiEye /> Viewer
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     <div className="task-type-indicator">
                         <span className="type-icon">{isTextAnnotation ? "📄" : "🖼️"}</span>
                         <span className="task-type-text">

@@ -14,7 +14,9 @@ import {
   FiImage,
   FiVideo,
   FiFileText,
-  FiBox
+  FiBox,
+  FiUsers,
+  FiUserPlus
 } from 'react-icons/fi';
 
 const COLOR_PALETTE = [
@@ -48,6 +50,20 @@ export default function ProjectImageHome() {
   const [previews, setPreviews] = useState([]);
   const [folderData, setFolderData] = useState(null);
   const [isCreating, setIsCreating] = useState(false); // Loading state for Create Project
+
+  // New states for collaborators
+  const [dataProviderEmail, setDataProviderEmail] = useState('');
+  const [collaboratorEmail, setCollaboratorEmail] = useState('');
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({
+    dataProvider: '',
+    collaborator: ''
+  });
+  const [emailSuggestions, setEmailSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionType, setSuggestionType] = useState(null); // 'dataProvider' or 'collaborator'
+
+
 
   const allowedAccept = projectMode
     ? projectCategory === 'Image Annotation'
@@ -88,6 +104,23 @@ export default function ProjectImageHome() {
     setPreviews(limited);
     return () => limited.forEach(p => URL.revokeObjectURL(p.url));
   }, [files, navigate, location.state]);
+
+  // Fetch available users to validate emails
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/api/users');
+        if (res.ok) {
+          const users = await res.json();
+          setAvailableUsers(users);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -246,6 +279,105 @@ export default function ProjectImageHome() {
     setLabelClasses(updatedLabels);
   };
 
+  const validateEmail = (email, role) => {
+    if (!email) return '';
+
+    // Only validate format if it's a complete email (has @ and .)
+    // This prevents "invalid email format" during typing
+    const isCompleteEmail = email.includes('@') && email.includes('.') && email.indexOf('@') < email.lastIndexOf('.');
+
+    if (isCompleteEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return 'Invalid email format';
+      }
+
+      // Check if user exists
+      const userExists = availableUsers.some(user => user.email === email);
+      if (!userExists) {
+        return 'User not found';
+      }
+    } else if (email.length > 0 && !showSuggestions) {
+      // Don't show validation errors while typing or when suggestions are shown
+      return '';
+    }
+
+    // Check if user is the project owner
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (currentUser && currentUser.email === email) {
+      return 'Cannot assign yourself';
+    }
+
+    // Check if same user is assigned to both roles
+    if (role === 'dataProvider' && email === collaboratorEmail) {
+      return 'User already assigned as collaborator';
+    } else if (role === 'collaborator' && email === dataProviderEmail) {
+      return 'User already assigned as data provider';
+    }
+
+    return '';
+  };
+
+  const handleDataProviderChange = (e) => {
+    const email = e.target.value;
+    setDataProviderEmail(email);
+
+    if (email.length > 0) {
+      const filteredSuggestions = availableUsers
+        .filter(user => user.email.toLowerCase().startsWith(email.toLowerCase()))
+        .map(user => user.email);
+      setEmailSuggestions(filteredSuggestions);
+      setShowSuggestions(true);
+      setSuggestionType('dataProvider');
+    } else {
+      setShowSuggestions(false);
+    }
+
+    setValidationErrors({
+      ...validationErrors,
+      dataProvider: validateEmail(email, 'dataProvider')
+    });
+  };
+
+  const handleCollaboratorChange = (e) => {
+    const email = e.target.value;
+    setCollaboratorEmail(email);
+
+    if (email.length > 0) {
+      const filteredSuggestions = availableUsers
+        .filter(user => user.email.toLowerCase().startsWith(email.toLowerCase()))
+        .map(user => user.email);
+      setEmailSuggestions(filteredSuggestions);
+      setShowSuggestions(true);
+      setSuggestionType('collaborator');
+    } else {
+      setShowSuggestions(false);
+    }
+
+    setValidationErrors({
+      ...validationErrors,
+      collaborator: validateEmail(email, 'collaborator')
+    });
+  };
+
+  // Add new function to handle suggestion selection
+  const handleSelectEmail = (email) => {
+    if (suggestionType === 'dataProvider') {
+      setDataProviderEmail(email);
+      setValidationErrors({
+        ...validationErrors,
+        dataProvider: validateEmail(email, 'dataProvider')
+      });
+    } else {
+      setCollaboratorEmail(email);
+      setValidationErrors({
+        ...validationErrors,
+        collaborator: validateEmail(email, 'collaborator')
+      });
+    }
+    setShowSuggestions(false);
+  };
+
   const handleUpload = async () => {
     if (!taskName.trim()) {
       alert('Enter a task name');
@@ -317,6 +449,24 @@ export default function ProjectImageHome() {
       alert('Enter a project name');
       return;
     }
+
+    // Validate collaborator emails if provided
+    if (dataProviderEmail && validationErrors.dataProvider) {
+      alert(`Data provider error: ${validationErrors.dataProvider}`);
+      return;
+    }
+
+    if (collaboratorEmail && validationErrors.collaborator) {
+      alert(`Collaborator error: ${validationErrors.collaborator}`);
+      return;
+    }
+
+    // If no data provider is assigned, files are mandatory
+    if (!dataProviderEmail && files.length === 0) {
+      alert('Please upload files or assign a data provider');
+      return;
+    }
+
     try {
       setIsCreating(true); // Start loading state
       const projectsRes = await fetch('http://localhost:4000/api/projects');
@@ -334,31 +484,47 @@ export default function ProjectImageHome() {
     } catch (err) {
       console.error('Error checking for duplicates:', err);
     }
-    if (!files.length) {
-      alert('Select files first');
-      setIsCreating(false);
-      return;
-    }
+
     if (!labelClasses.length) {
       alert('Add at least one label class');
       setIsCreating(false);
       return;
     }
+
     try {
-      const formData = new FormData();
-      formData.append('projectName', projectName);
-      formData.append('labelClasses', JSON.stringify(labelClasses));
-      files.forEach(file => {
-        formData.append('filePaths', file.webkitRelativePath || file.name);
-        formData.append('files', file);
-      });
-      const uploadRes = await fetch('http://localhost:4000/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const uploadData = await uploadRes.json();
+      let uploadData = { folderId: null };
       const userSession = JSON.parse(localStorage.getItem('user'));
+
+      // Only upload files if there are any
+      if (files.length > 0) {
+        const formData = new FormData();
+        formData.append('projectName', projectName);
+        formData.append('labelClasses', JSON.stringify(labelClasses));
+        // Add user ID to the form data so the server knows which user is uploading
+        formData.append('userId', userSession.id);
+
+        files.forEach(file => {
+          formData.append('filePaths', file.webkitRelativePath || file.name);
+          formData.append('files', file);
+        });
+
+        const uploadRes = await fetch('http://localhost:4000/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadRes.ok) throw new Error('Upload failed');
+        uploadData = await uploadRes.json();
+      } else {
+        // If no files, create an empty folder for the project
+        const createFolderRes = await fetch('http://localhost:4000/api/create-empty-folder', {
+          method: 'POST'
+        });
+
+        if (!createFolderRes.ok) throw new Error('Failed to create project folder');
+        uploadData = await createFolderRes.json();
+      }
+
       const projectRes = await fetch('http://localhost:4000/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -367,11 +533,62 @@ export default function ProjectImageHome() {
           projectName: projectName,
           folderId: uploadData.folderId,
           projectType: projectType,
-          labelClasses: labelClasses
+          labelClasses: labelClasses,
+          dataProviderEmail: dataProviderEmail || null,
+          collaboratorEmail: collaboratorEmail || null,
+          hasData: files.length > 0
         })
       });
+
       if (!projectRes.ok) throw new Error('Failed to create project');
       const projectData = await projectRes.json();
+
+      // Create role assignments
+      if (dataProviderEmail || collaboratorEmail) {
+        // Get user IDs for the email addresses
+        const dataProvider = availableUsers.find(user => user.email === dataProviderEmail);
+        const collaborator = availableUsers.find(user => user.email === collaboratorEmail);
+
+        // Create role assignments
+        const rolesRes = await fetch('http://localhost:4000/api/roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: projectData.projectId,
+            ownerId: userSession.id,
+            dataProviderId: dataProvider ? dataProvider.id : null,
+            collaboratorId: collaborator ? collaborator.id : null
+          })
+        });
+
+        if (!rolesRes.ok) throw new Error('Failed to assign roles');
+
+        // Send notifications to users
+        if (dataProvider) {
+          await fetch('http://localhost:4000/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: dataProvider.id,
+              message: `${userSession.username} assigned you as data provider for project "${projectName}"`,
+              related_project_id: projectData.projectId
+            })
+          });
+        }
+
+        if (collaborator) {
+          await fetch('http://localhost:4000/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: collaborator.id,
+              message: `${userSession.username} assigned you as collaborator for project "${projectName}"`,
+              related_project_id: projectData.projectId
+            })
+          });
+        }
+      }
+
       setFolderData({ ...uploadData, projectId: projectData.projectId });
       alert('Project created successfully!');
       navigate('/projects');
@@ -560,6 +777,70 @@ export default function ProjectImageHome() {
                 </div>
               </div>
             )}
+
+            {/* New section for inviting collaborators */}
+            <div className="collaborators-section">
+              <h3><FiUsers /> Invite Data Provider or Collaborator</h3>
+              <div className="collaborator-form">
+                <div className="form-group">
+                  <label>
+                    <FiUserPlus /> Data Provider (will upload data)
+                  </label>
+                  <input
+                    type="email"
+                    value={dataProviderEmail}
+                    onChange={handleDataProviderChange}
+                    placeholder="Enter email address"
+                    className={validationErrors.dataProvider ? 'error' : ''}
+                  />
+                  {validationErrors.dataProvider && (
+                    <span className="error-message">{validationErrors.dataProvider}</span>
+                  )}
+                  {showSuggestions && suggestionType === 'dataProvider' && emailSuggestions.length > 0 && (
+                    <div className="email-suggestions">
+                      {emailSuggestions.map((email, index) => (
+                        <div
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => handleSelectEmail(email)}
+                        >
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>
+                    <FiUserPlus /> Collaborator (will annotate data)
+                  </label>
+                  <input
+                    type="email"
+                    value={collaboratorEmail}
+                    onChange={handleCollaboratorChange}
+                    placeholder="Enter email address"
+                    className={validationErrors.collaborator ? 'error' : ''}
+                  />
+                  {validationErrors.collaborator && (
+                    <span className="error-message">{validationErrors.collaborator}</span>
+                  )}
+                  {showSuggestions && suggestionType === 'collaborator' && emailSuggestions.length > 0 && (
+                    <div className="email-suggestions">
+                      {emailSuggestions.map((email, index) => (
+                        <div
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => handleSelectEmail(email)}
+                        >
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="labels-section">
               <h3><FiTag /> Label Classes</h3>
               <div className="label-form">
@@ -653,3 +934,4 @@ const fadeInPreview = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = fadeInPreview;
 document.head.appendChild(styleSheet);
+

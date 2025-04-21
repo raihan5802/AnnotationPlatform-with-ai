@@ -599,3 +599,22 @@
   background-color: #444;
   border-color: #555;
 }
+
+.view-only-notice {
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: rgba(255, 193, 7, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #ffc107;
+}
+
+.view-only-badge {
+  display: inline-block;
+  background-color: #ffc107;
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}

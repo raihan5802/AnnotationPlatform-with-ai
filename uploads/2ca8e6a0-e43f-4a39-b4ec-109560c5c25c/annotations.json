@@ -1,0 +1,36 @@
+{
+  "taskName": "t1",
+  "labelClasses": [
+    {
+      "name": "t",
+      "color": "#e6194B"
+    }
+  ],
+  "annotations": {
+    "http://localhost:4000/uploads/2ca8e6a0-e43f-4a39-b4ec-109560c5c25c/test_20250421/roots/WeThePeople20ArcadeBMXBike_3_5000x.webp": [
+      {
+        "type": "bbox",
+        "x": 562.2361673414306,
+        "y": 384.21604958965503,
+        "width": 678.8232118758434,
+        "height": 435.8363628036897,
+        "label": "t",
+        "color": "#e6194B",
+        "opacity": 0.55
+      }
+    ],
+    "http://localhost:4000/uploads/2ca8e6a0-e43f-4a39-b4ec-109560c5c25c/test_20250421/roots/ultraviolettef77mach2_1728657011.webp": [
+      {
+        "type": "bbox",
+        "x": 56.85087719298244,
+        "y": 48.99897788528922,
+        "width": 136.6396761133603,
+        "height": 94.46715444384735,
+        "label": "t",
+        "color": "#e6194B",
+        "opacity": 0.55
+      }
+    ]
+  },
+  "lastUpdated": "2025-04-21T17:38:03.658Z"
+}
